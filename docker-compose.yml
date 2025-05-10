@@ -14,7 +14,7 @@ services:
     volumes:
       - ./:/var/www/app
       - ../docker-remote/php/php.ini:/usr/local/etc/php/php.ini
-      - ../docker-remote/logs/php:/var/log/php
+      - ../docker-remote-data/${DOCKER_PROJECT_NAME}/data/php/logs:/var/log/php
     networks:
       - backend
 
