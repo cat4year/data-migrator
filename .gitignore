@@ -1,0 +1,13 @@
+/.phpunit.cache
+/storage
+/vendor
+.env
+.env.testing
+.phpunit.result.cache
+/.idea
+.phpstorm.meta.php
+_ide_helper.php
+_ide_helper_models.php
+cghooks.lock
+*.sql
+/result.xml

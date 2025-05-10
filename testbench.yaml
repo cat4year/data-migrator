@@ -1,0 +1,33 @@
+laravel: '@testbench'
+
+migrations:
+  - tests/Database/Migrations
+
+seeders:
+  - tests/Database/Seeders/DatabaseSeeder
+
+providers:
+  - Cat4year\DataMigrator\Providers\DataMigratorServiceProvider
+
+env:
+  - APP_ENV=testing
+  - DB_CONNECTION=pgsql
+  - DB_HOST=postgres
+  - DB_DATABASE=testing
+  - DB_USERNAME=migrator
+  - DB_PASSWORD=migrator
+  - APP_DEBUG=true
+  - CACHE_STORE=file
+  - CACHE_PREFIX=
+
+storage: /var/www/app/storage
+
+workbench:
+  start: '/'
+  install: true
+  health: false
+  build:
+    - asset-publish
+    - migrate-fresh
+  assets:
+    - laravel-assets

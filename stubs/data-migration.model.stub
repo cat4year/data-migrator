@@ -1,0 +1,19 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+
+return new class extends Migration
+{
+
+    public function up(): void
+    {
+        app({{migrationClass}}::class)
+            ->up({{path}});
+    }
+
+    public function down(): void
+    {
+        app({{migrationClass}}::class)
+            ->down({{path});
+    }
+};

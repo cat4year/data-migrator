@@ -1,0 +1,52 @@
+services:
+  php:
+    build:
+      context: ../docker-remote/php
+      dockerfile: Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    environment:
+      - PHP_IDE_CONFIG=serverName=Docker
+    container_name: ${DOCKER_PROJECT_NAME}-php
+    expose:
+      - "9000"
+    volumes:
+      - ./:/var/www/app
+      - ../docker-remote/php/php.ini:/usr/local/etc/php/php.ini
+      - ../docker-remote/logs/php:/var/log/php
+    networks:
+      - backend
+
+  postgres:
+    build:
+      context: ../docker-remote/postgres
+      dockerfile: Dockerfile
+    container_name: ${DOCKER_PROJECT_NAME}-postgresql
+    ports:
+      - "${DOCKER_DB_PORT:-5432}:${DB_PORT:-5432}"
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - ../docker-remote-data/${DOCKER_PROJECT_NAME}/data/postgres:/var/lib/postgresql/data
+      - ../docker-remote-data/${DOCKER_PROJECT_NAME}/data/postgres/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ../docker-remote/postgres/create-test-db.sql:/docker-entrypoint-initdb.d/10-create-test-db.sql
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "${DB_DATABASE}", "-U", "${DB_USERNAME}" ]
+      retries: 3
+      timeout: 5s
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+    name: ${DOCKER_PROJECT_NAME}
+    ipam:
+        config:
+            - subnet: 10.8.0.0/16
+              gateway: 10.8.0.1

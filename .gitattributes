@@ -1,0 +1,23 @@
+* text=auto eol=lf
+
+*.blade.php diff=html
+*.css diff=css
+*.html diff=html
+*.md diff=markdown
+*.php diff=php
+
+/.github/ export-ignore
+CHANGELOG.md export-ignore
+.styleci.yml export-ignore
+/docker/ export-ignore
+/docker-compose.yml export-ignore
+/tests/ export-ignore
+/src/Models export-ignore
+/database/ export-ignore
+/config/ export-ignore
+/bootstrap/ export-ignore
+/public/ export-ignore
+/resource/ export-ignore
+/storage/ export-ignore
+/workbench/ export-ignore
+composer.lock export-ignore
