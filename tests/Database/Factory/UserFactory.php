@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Tests\Database\Factory;
+namespace Cat4year\DataMigratorTests\Database\Factory;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Tests\App\Models\User;
+use Cat4year\DataMigratorTests\App\Models\User;
 
 use function Workbench\Database\Factories\fake;
 use function Workbench\Database\Factories\now;

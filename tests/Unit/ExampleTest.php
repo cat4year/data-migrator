@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit;
+namespace Cat4year\DataMigratorTests\Unit;
 
 use PHPUnit\Framework\TestCase;
 

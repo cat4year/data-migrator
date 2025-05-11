@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Feature;
+namespace Cat4year\DataMigratorTests\Feature;
 
 use Cat4year\DataMigrator\Services\DataMigrator\Export\ExportConfigurator;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Exporter;
@@ -11,8 +11,8 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
-use Tests\App\Models\SlugFirst;
-use Tests\Database\Seeders\DatabaseSeeder;
+use Cat4year\DataMigratorTests\App\Models\SlugFirst;
+use Cat4year\DataMigratorTests\Database\Seeders\DatabaseSeeder;
 
 final class ExportTest extends BaseTestCase
 {

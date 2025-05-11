@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Tests\Database\Factory;
+namespace Cat4year\DataMigratorTests\Database\Factory;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
-use Tests\App\Models\SlugSecond;
-use Tests\App\Models\SlugThree;
+use Cat4year\DataMigratorTests\App\Models\SlugSecond;
+use Cat4year\DataMigratorTests\App\Models\SlugThree;
 
 /**
  * @extends Factory<SlugThree>

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Feature\Export\Relations;
+namespace Cat4year\DataMigratorTests\Feature\Export\Relations;
 
 use Cat4year\DataMigrator\Services\DataMigrator\Export\ExportConfigurator;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationsExporter;
@@ -14,8 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Tests\Feature\BaseTestCase;
-use Tests\Resource\Export\Relations\RelationsExporterTestSeeder;
+use Cat4year\DataMigratorTests\Feature\BaseTestCase;
+use Cat4year\DataMigratorTests\Resource\Export\Relations\RelationsExporterTestSeeder;
 
 final class RelationsExporterTest extends BaseTestCase
 {

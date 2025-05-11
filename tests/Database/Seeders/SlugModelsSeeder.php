@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Tests\Database\Seeders;
+namespace Cat4year\DataMigratorTests\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Tests\App\Models\SlugFirst;
-use Tests\Database\Factory\SlugFirstFactory;
-use Tests\Database\Factory\SlugFourFactory;
-use Tests\Database\Factory\SlugSecondFactory;
-use Tests\Database\Factory\SlugThreeFactory;
+use Cat4year\DataMigratorTests\App\Models\SlugFirst;
+use Cat4year\DataMigratorTests\Database\Factory\SlugFirstFactory;
+use Cat4year\DataMigratorTests\Database\Factory\SlugFourFactory;
+use Cat4year\DataMigratorTests\Database\Factory\SlugSecondFactory;
+use Cat4year\DataMigratorTests\Database\Factory\SlugThreeFactory;
 
 final class SlugModelsSeeder extends Seeder
 {

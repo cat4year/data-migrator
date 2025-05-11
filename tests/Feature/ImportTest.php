@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Feature;
+namespace Cat4year\DataMigratorTests\Feature;
 
 use Cat4year\DataMigrator\Services\DataMigrator\Import\ImportData;
 use Cat4year\DataMigrator\Services\DataMigrator\Import\Importer;

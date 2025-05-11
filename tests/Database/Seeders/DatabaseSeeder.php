@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Database\Seeders;
+namespace Cat4year\DataMigratorTests\Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;

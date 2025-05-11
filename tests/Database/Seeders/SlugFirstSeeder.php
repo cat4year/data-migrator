@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\Database\Seeders;
+namespace Cat4year\DataMigratorTests\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Tests\Database\Factory\SlugFirstFactory;
+use Cat4year\DataMigratorTests\Database\Factory\SlugFirstFactory;
 
 final class SlugFirstSeeder extends Seeder
 {
