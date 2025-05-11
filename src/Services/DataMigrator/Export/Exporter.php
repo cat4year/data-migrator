@@ -53,6 +53,13 @@ final readonly class Exporter
 
     public function export(): string
     {
+        $exportData = $this->exportData();
+
+        return $this->save($exportData);
+    }
+
+    public function exportData(): array
+    {
         if (empty($this->configurator->getIds())) {
             $idKey = $this->entity->getKeyName();
             $ids = $this->entity::query()
@@ -72,7 +79,12 @@ final readonly class Exporter
             throw new RuntimeException('Export items not found');
         }
 
-        $migrationPath = $this->configurator->makeSource();
+        return $exportData;
+    }
+
+    public function save(array $exportData): string
+    {
+        $migrationPath = $this->configurator->makeSourceFullPath();
         $this->configurator->getSourceFormat()->save($exportData, $migrationPath);
 
         return $migrationPath;

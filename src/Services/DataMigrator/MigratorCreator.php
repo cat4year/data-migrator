@@ -6,6 +6,7 @@ namespace Cat4year\DataMigrator\Services\DataMigrator;
 
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Database\Migrations\MigrationCreator;
+use Illuminate\Support\Facades\Artisan;
 
 final class MigratorCreator extends MigrationCreator
 {
@@ -27,6 +28,8 @@ final class MigratorCreator extends MigrationCreator
             $this->populateDataStub($stub, $data)
         );
 
+        Artisan::call('app:pint', ['--file' => $path]);
+
         $this->firePostCreateHooks($data, $path);
 
         return $path;
@@ -37,12 +40,16 @@ final class MigratorCreator extends MigrationCreator
      */
     protected function getDataStub(): string
     {
-        if (! $this->files->exists($customPath = $this->customStubPath.'/migration-data.stub')) {
-            throw new FileNotFoundException('migration-data.stub отсутствует. Он нужен для корректной работы');
-        }
-        $stub = $customPath;
+        $stub = $this->files->exists($customPath = $this->customStubPath.'/data-migration.model.stub')
+            ? $customPath
+            : $this->stubPath().'/data-migration.model.stub';
 
         return $this->files->get($stub);
+    }
+
+    public function stubPath(): string
+    {
+        return __DIR__.'/../../../stubs';
     }
 
     protected function populateDataStub(string $stub, ?string $data): string

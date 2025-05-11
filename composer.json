@@ -36,7 +36,10 @@
     "autoload": {
         "psr-4": {
             "Cat4year\\DataMigrator\\": "src/"
-        }
+        },
+        "files": [
+            "src/Helpers/app.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

@@ -52,7 +52,7 @@ final class ExportTest extends BaseTestCase
 
         $exporter->export();
 
-        $this->assertTrue($disk->exists($configurator->makeSourcePath()));
+        $this->assertTrue($disk->exists($configurator->makeSourceBaseName()));
     }
 
     /**
@@ -68,7 +68,7 @@ final class ExportTest extends BaseTestCase
 
         $exporter->export();
 
-        $this->assertTrue($disk->exists($configurator->makeSourcePath()));
+        $this->assertTrue($disk->exists($configurator->makeSourceBaseName()));
     }
 
     protected function tearDown(): void

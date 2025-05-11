@@ -81,7 +81,7 @@ final class ExportConfigurator
         return $this->sourceFormat;
     }
 
-    public function makeSourcePath(string $fileName = '', string $format = ''): string
+    public function makeSourceBaseName(string $fileName = '', string $format = ''): string
     {
         if (empty($format)) {
             $format = match ($this->sourceFormat::class) {
@@ -93,9 +93,9 @@ final class ExportConfigurator
         return ($fileName ?: $this->fileName).'.'.$format;
     }
 
-    public function makeSource(string $fileName = '', string $format = ''): string
+    public function makeSourceFullPath(string $fileName = '', string $format = ''): string
     {
-        $pathWithFormat = $this->makeSourcePath($fileName, $format);
+        $pathWithFormat = $this->makeSourceBaseName($fileName, $format);
 
         if ($this->directoryPath !== null) {
             $fullPath = $this->directoryPath.'/'.$pathWithFormat;

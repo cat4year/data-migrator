@@ -3,6 +3,13 @@
 declare(strict_types=1);
 
 return [
+    'migrations_path' => env('MIGRATIONS_PATH'),
+    'model_config_map' => [],
+    /** Если в таблице нет уникальной не инкрементарной колонки - добавьте ее в сопоставление
+     * Ключ - название таблицы, Значение - название колонки
+     * Будет использоваться указанная колонка приоритетно, вместо автоматического поиска подходящей колонки
+     */
+    'table_unique_column_map' => [],
     /**
      * Если колонка связи - изменчивый инкрементарный id
      * Если в модели не указана конкретная колонка с помощью свойства migrationColumnKey
@@ -10,5 +17,4 @@ return [
      * false - Выбрасываем исключение, т.к. не можем мигрировать поля с инкрементарным id
      */
     'try_find_unique_relation_column' => env('MIGRATION_TRY_FIND_UNIQUE_RELATION_COLUMN', true),
-    'migrations_path' => env('MIGRATIONS_PATH'),
 ];

@@ -6,8 +6,10 @@ namespace Cat4year\DataMigrator\Services\DataMigrator;
 
 use Cat4year\DataMigrator\Services\Configurations\DataMigratorConfiguration;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Exporter;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use RuntimeException;
+use function Cat4year\DataMigrator\Helpers\var_pretty_export;
 
 final readonly class Migrator
 {
@@ -20,17 +22,8 @@ final readonly class Migrator
 
     /**
      * @throws FileNotFoundException
+     * @throws BindingResolutionException
      */
-    public function makeEntityMigration(string $name, string $path): string
-    {
-        return $this->creator->createData($name, $path, $this->makeEntityMigrationData());
-    }
-
-    public function makeEntityMigrationData(): string
-    {
-        return 'hello world';
-    }
-
     public function createByConfiguration(
         string $configClass,
         string $name,
@@ -42,17 +35,24 @@ final readonly class Migrator
             throw new RuntimeException('Migration class not found or not instance of Model');
         }
 
-        /** @var DataMigratorConfiguration $configMaker */
         $configMaker = app($configClass);
+        assert($configMaker instanceof DataMigratorConfiguration);
         $configurator = $configMaker->make();
 
         $configurator->setDirectoryPath($path)
             ->setIds($ids ?? [])
-            ->setFileName(date('Y_m_d_His').'_'.$name);
+            ->setFileName($name);
 
         $exporter = Exporter::create(app($modelClass), $configurator);
-        $exporter->export();
+        $exportData = $exporter->exportData();
 
-        return $configurator->makeSource();
+        $fullPath = $configurator->makeSourceFullPath();
+        $this->creator->createData(
+            $configurator->getFileName(),
+            dirname($fullPath),
+            var_pretty_export($exportData, true)
+        );
+
+        return $fullPath;
     }
 }

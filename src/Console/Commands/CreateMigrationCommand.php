@@ -60,7 +60,7 @@ final class CreateMigrationCommand extends Command
         $configurationClass = $input->getOption('config');
 
         $migrationPath = app(Migrator::class)->createByConfiguration(
-            $this->defineConfiguration($configurationClass, $modelClass),
+            $this->defineConfiguration($modelClass, $configurationClass),
             $name,
             $path,
             $modelClass,
@@ -91,7 +91,7 @@ final class CreateMigrationCommand extends Command
      * @param class-string<Model> $modelClass
      * @return class-string<DataMigratorConfiguration>
      */
-    private function defineConfiguration(?string $configurationClass, string $modelClass): string
+    private function defineConfiguration(string $modelClass, ?string $configurationClass = null): string
     {
         if ($configurationClass !== null) {
             return $configurationClass;
@@ -104,6 +104,17 @@ final class CreateMigrationCommand extends Command
             && is_subclass_of($model->dataMigratorConfiguration, DataMigratorConfiguration::class)
         ) {
             return $model->dataMigratorConfiguration;
+        }
+
+        /** @var array<class-string<Model>, class-string<DataMigratorConfiguration>> $modelConfigMap */
+        $modelConfigMap = config('data-migrator.model_config_map');
+
+        if (
+            is_array($modelConfigMap)
+            && isset($modelConfigMap[$modelClass])
+            && is_subclass_of($modelConfigMap[$modelClass], DataMigratorConfiguration::class)
+        ) {
+            return $modelConfigMap[$modelClass];
         }
 
         return BaseConfiguration::class;
@@ -128,6 +139,6 @@ final class CreateMigrationCommand extends Command
 
     private function getBasePath(): string
     {
-        return config('data-migrator.migrations_path') ?? __DIR__.'/../../../database/migrations';
+        return config('data-migrator.migrations_path') ?? database_path('migrations');
     }
 }

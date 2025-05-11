@@ -1,19 +1,22 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Cat4year\DataMigrator\Services\DataMigrator\Import\ImportData;
+use Cat4year\DataMigrator\Services\DataMigrator\Import\Importer;
 
 return new class extends Migration
 {
-
     public function up(): void
     {
-        app({{migrationClass}}::class)
-            ->up({{path}});
+        app(Importer::class)->import($this->data());
     }
 
     public function down(): void
     {
-        app({{migrationClass}}::class)
-            ->down({{path});
+    }
+
+    private function data(): ImportData
+    {
+        return ImportData::createFromArray({{data}});
     }
 };

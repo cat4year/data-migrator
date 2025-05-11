@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cat4year\DataMigrator\Providers;
 
 use Cat4year\DataMigrator\Console\Commands\CreateMigrationCommand;
+use Cat4year\DataMigrator\Console\Commands\PintFileCommand;
 use Cat4year\DataMigrator\Services\DataMigrator\MigratorCreator;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\MigrationDataSourceFormat;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\Php\PhpMigrationDataSourceFormat;
@@ -24,10 +25,20 @@ final class DataMigratorServiceProvider extends ServiceProvider
             __DIR__.'/../../config/data-migrator.php', 'data-migrator'
         );
 
-        $this->registerCreator();
+        require_once(__DIR__.'/../../src/Helpers/app.php');
 
+        $this->registerCreator();
+    }
+
+    public function boot(): void
+    {
         $this->commands([
             CreateMigrationCommand::class,
+            PintFileCommand::class,
+        ]);
+
+        $this->publishes([
+            __DIR__.'/../../config/data-migrator.php' => config_path('data-migrator.php'),
         ]);
     }
 
