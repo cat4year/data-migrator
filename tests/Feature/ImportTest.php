@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use Cat4year\DataMigrator\Services\DataMigrator\Import\ImportData;
 use Cat4year\DataMigrator\Services\DataMigrator\Import\Importer;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 
@@ -19,7 +20,8 @@ final class ImportTest extends BaseTestCase
         $importer = app(Importer::class);
         $fullPath = __DIR__.'/Fixtures/export.php';
 
-        $importer->import($fullPath);
+        $importData = ImportData::createFromFile($fullPath);
+        $importer->import($importData);
 
         $this->assertDatabaseCount('slug_firsts', 4);
         $this->assertDatabaseCount('slug_threes', 4);

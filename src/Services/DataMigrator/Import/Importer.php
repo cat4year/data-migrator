@@ -28,9 +28,9 @@ final readonly class Importer
     ) {
     }
 
-    public function import(string $path): void
+    public function import(ImportData $importData): void
     {
-        $data = $this->sourceFormat->load($path);
+        $data = $importData->get();
         $this->importData($data);
     }
 
@@ -50,6 +50,9 @@ final readonly class Importer
         $result = [];
 
         foreach ($data as $tableName => $tableData) {
+            if($tableName === 'attachmentable'){
+               echo 'kek';
+            }
             $uniqueIdAttribute = $this->identifyUniqueAttribute($tableData['modifiedAttributes']);
             $result[$tableName]['items'] = array_column($tableData['items'], $uniqueIdAttribute);
             $currentModifyInfo = $tableData['modifiedAttributes'][$uniqueIdAttribute];
@@ -77,7 +80,7 @@ final readonly class Importer
             }
         }
 
-        throw new RuntimeException('Не смогли определить уникальный id для таблицы');
+        throw new RuntimeException('Не смогли определить уникальный id для таблицы ');
     }
 
     private function collectExistDataByTable(array $data, array $uniqueIdItemsValues): void
