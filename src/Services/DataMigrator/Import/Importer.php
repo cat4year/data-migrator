@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Import;
 
+use Cat4year\DataMigrator\Entity\ExportModifyColumn;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\CollectionMerger;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\MigrationDataSourceFormat;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
+use Cat4year\DataMigratorTests\App\Models\SlugFirst;
 use DB;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use PHPUnit\TextUI\XmlConfiguration\MigrationException;
 use RuntimeException;
 use stdClass;
 use Throwable;
@@ -40,6 +44,9 @@ final readonly class Importer
     public function importData(array $data): void
     {
         $uniqueIdItemsValues = $this->getUniqueIdsByTable($data);
+//        if (empty($uniqueIdItemsValues)) {
+//            throw new RuntimeException('Нет уникальных id во всех таблицах');
+//        }
         $this->collectExistDataByTable($data, $uniqueIdItemsValues);
         $this->syncWithoutAutoincrementRelationFields($data, $uniqueIdItemsValues);
         $this->syncWithAutoincrementRelationFields($data, $uniqueIdItemsValues);
@@ -50,17 +57,22 @@ final readonly class Importer
         $result = [];
 
         foreach ($data as $tableName => $tableData) {
-            if($tableName === 'attachmentable'){
-               echo 'kek';
+            if (!isset($tableData['modifiedAttributes'])) {
+                continue;
             }
+
+            //todo: нужно будет поменять под историю с комплексным ключом для синхронизации
+
+            //todo: по-идее просто убираем unqueIdAttribute и меняем на getSourceKeyName?
             $uniqueIdAttribute = $this->identifyUniqueAttribute($tableData['modifiedAttributes']);
             $result[$tableName]['items'] = array_column($tableData['items'], $uniqueIdAttribute);
             $currentModifyInfo = $tableData['modifiedAttributes'][$uniqueIdAttribute];
+            assert($currentModifyInfo instanceof ExportModifyColumn);
 
-            if ($currentModifyInfo['table'] === $tableName) {
-                $result[$tableName]['table'] = $currentModifyInfo['table'];
-                $result[$tableName]['keyName'] = $currentModifyInfo['keyName'];
-                $result[$tableName]['oldKeyName'] = $tableData['modifiedAttributes'][$uniqueIdAttribute]['oldKeyName'];
+            if ($currentModifyInfo->getSourceTableName() === $tableName) {
+                $result[$tableName]['table'] = $currentModifyInfo->getTableName();
+                $result[$tableName]['keyName'] = $currentModifyInfo->getSourceUniqueKeyName();
+                $result[$tableName]['oldKeyName'] = $currentModifyInfo->getSourceKeyName();
                 $result[$tableName]['loadExist'] = true;
             } else {
                 $result[$tableName]['table'] = $tableName;
@@ -72,10 +84,13 @@ final readonly class Importer
         return $result;
     }
 
+    /**
+     * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
+     */
     private function identifyUniqueAttribute(array $modifiedAttributes): string
     {
         foreach ($modifiedAttributes as $attributeKey => $modifyInfo) {
-            if (isset($modifyInfo['isPrimaryKey']) && $modifyInfo['isPrimaryKey'] === true) {
+            if ($modifyInfo->isPrimarykey()) {
                 return $attributeKey;
             }
         }
@@ -86,6 +101,10 @@ final readonly class Importer
     private function collectExistDataByTable(array $data, array $uniqueIdItemsValues): void
     {
         foreach ($data as $tableName => $tableData) {
+            if (!isset($tableData['modifiedAttributes'])) {
+                continue;
+            }
+
             $currentData = $uniqueIdItemsValues[$tableName];
             $values = $currentData['items'];
             $keyName = $currentData['keyName'];
@@ -106,11 +125,13 @@ final readonly class Importer
     private function syncWithoutAutoincrementRelationFields(array $data, array $uniqueIdItemsValues): void
     {
         foreach ($data as $tableName => $tableData) {
-            if ($this->hasRelationFields($tableData['modifiedAttributes'])) {
-                continue;
-            }
+            //todo: тут в комментах бред какой-то. Почему не синхроним простые таблицы без автоинкремента если нет modifiedAttributes? modifiedAttributes и не должно быть
+//            if (!isset($tableData['modifiedAttributes']) || $this->hasRelationFields($tableData['modifiedAttributes'])) {
+//                continue;
+//            }
 
             $uniqueKeyName = $uniqueIdItemsValues[$tableName]['keyName'];
+            //todo: нужно ли?
             $itemsForSync = $this->preparer->beforeSyncWithDatabase(
                 $tableData['items'],
                 $uniqueIdItemsValues[$tableName]
@@ -119,13 +140,17 @@ final readonly class Importer
         }
     }
 
+    /**
+     * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
+     * @return bool
+     */
     private function hasRelationFields(array $modifiedAttributes): bool
     {
         if (count($modifiedAttributes) > 1) {
             return true;
         }
 
-        return count($modifiedAttributes) === 1 && current($modifiedAttributes)['isPrimaryKey'] === false;
+        return count($modifiedAttributes) === 1 && !current($modifiedAttributes)->isPrimaryKey();
     }
 
     /**
@@ -137,7 +162,7 @@ final readonly class Importer
         $needFixLater = [];
 
         foreach ($data as $tableName => $tableData) {
-            if (! $this->hasRelationFields($tableData['modifiedAttributes'])) {
+            if (!isset($tableData['modifiedAttributes']) || $this->hasRelationFields($tableData['modifiedAttributes'])) {
                 continue;
             }
 
@@ -165,7 +190,7 @@ final readonly class Importer
                     DB::table($tableName)->where($uniqueKeyName, $item[$uniqueKeyName])->updateOrInsert($item);
                 }
             } catch (Throwable $e) {
-                Log::error('Ошибка при подмене id', [
+                Log::error('Ошибка при обновлении', [
                     $tableName,
                     $itemsData,
                     $item,

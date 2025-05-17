@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Import;
 
+use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
+use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
+use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\MigrationDataSourceFormat;
 
 final class ImportData
@@ -36,6 +39,25 @@ final class ImportData
 
     public function get(): array
     {
-        return $this->data;
+        return $this->prepareForImport($this->data);
+    }
+
+    private function prepareForImport(array $data): array
+    {
+        foreach ($data as &$tableData) {
+            if (!isset($tableData['modifiedAttributes'])) {
+                continue;
+            }
+
+            foreach ($tableData['modifiedAttributes'] as &$modifyInfo) {
+                $modifyInfo = match (true) {
+                    isset($modifyInfo['foreignTableName']) => ExportModifyForeignColumn::fromArray($modifyInfo),
+                    isset($modifyInfo['morphType']) => ExportModifyMorphColumn::fromArray($modifyInfo),
+                    default => ExportModifySimpleColumn::fromArray($modifyInfo),
+                };
+            }
+        }
+
+        return $data;
     }
 }

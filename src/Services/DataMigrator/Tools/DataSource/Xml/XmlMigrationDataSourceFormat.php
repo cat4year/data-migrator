@@ -8,6 +8,7 @@ use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\MigrationDataSo
 use DOMException;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
+use JsonException;
 
 final readonly class XmlMigrationDataSourceFormat implements MigrationDataSourceFormat
 {
@@ -19,16 +20,42 @@ final readonly class XmlMigrationDataSourceFormat implements MigrationDataSource
     }
 
     /**
+     * @param array $data
+     * @param string $path
      * @throws DOMException
+     * @throws JsonException
      */
     public function save(array $data, string $path): void
     {
-        $data = $this->prepareBeforeArrayToXml($data);
-
-        $xml = new ArrayToXml($data, 'data', xmlEncoding: 'utf-8', options: ['convertBoolToString' => true]);
-
         $this->files->ensureDirectoryExists(dirname($path));
-        $this->files->put($path, $xml->prettify()->toXml());
+        $this->files->put($path, $this->prepare($data));
+    }
+
+    public function prepareForMigration(array $exportData): string
+    {
+        $preparedData = $this->prepare($exportData);
+
+        return <<<XML
+$preparedData
+XML;
+    }
+
+    /**
+     * @throws DOMException
+     * @throws JsonException
+     */
+    private function prepare(array $exportData): string
+    {
+        $exportDataWithoutObjects = json_decode(
+            json_encode($exportData, JSON_THROW_ON_ERROR),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+        $exportDataCorrectStructure = $this->prepareBeforeArrayToXml($exportDataWithoutObjects);
+        $xml = new ArrayToXml($exportDataCorrectStructure, 'data', xmlEncoding: 'utf-8', options: ['convertBoolToString' => true]);
+
+        return $xml->prettify()->toXml();
     }
 
     public function load(string $resource): array

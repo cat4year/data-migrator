@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Cat4year\DataMigrator\Tests;
+namespace Cat4year\DataMigratorTests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 

@@ -12,4 +12,6 @@ interface MigrationDataSourceFormat
     public function save(array $data, string $path): void;
 
     public function load(string $resource): array;
+
+    public function prepareForMigration(array $exportData): string;
 }

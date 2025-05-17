@@ -11,6 +11,7 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection as SupportCollection;
 use InvalidArgumentException;
+use JsonException;
 use RuntimeException;
 use stdClass;
 
@@ -51,6 +52,9 @@ final readonly class Exporter
         return app()->makeWith(self::class, $params);
     }
 
+    /**
+     * @throws JsonException
+     */
     public function export(): string
     {
         $exportData = $this->exportData();
@@ -58,6 +62,9 @@ final readonly class Exporter
         return $this->save($exportData);
     }
 
+    /**
+     * @throws JsonException
+     */
     public function exportData(): array
     {
         if (empty($this->configurator->getIds())) {
@@ -137,8 +144,12 @@ final readonly class Exporter
             $state->result->put($entityTable, $resultDataForTable);
         }
 
-        $result = $this->relationManager->modify($state->result, $state->relationsInfo);
+        $exportModifier = app()->makeWith(ExportModifier::class, [
+            'entitiesCollections' => $state->result,
+            'entityClasses' => $state->relationsInfo,
+        ]);
 
+        $result = $exportModifier->modify();
         return $this->sorter->sort($result);
     }
 

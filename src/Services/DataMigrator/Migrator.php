@@ -47,10 +47,11 @@ final readonly class Migrator
         $exportData = $exporter->exportData();
 
         $fullPath = $configurator->makeSourceFullPath();
+        $preparedExportData = $configurator->getSourceFormat()->prepareForMigration($exportData); //for xml will need add
         $this->creator->createData(
             $configurator->getFileName(),
             dirname($fullPath),
-            var_pretty_export($exportData, true)
+            $preparedExportData
         );
 
         return $fullPath;

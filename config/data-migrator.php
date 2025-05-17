@@ -9,7 +9,15 @@ return [
      * Ключ - название таблицы, Значение - название колонки
      * Будет использоваться указанная колонка приоритетно, вместо автоматического поиска подходящей колонки
      */
-    'table_unique_column_map' => [],
+    'table_unique_column_map' => [
+        //'users' => ['name', 'email']
+        'slug_secondables' => [
+            'slug_second_type',
+            'slug_second_id',
+            'slug_secondable_id',
+        ],
+        'slug_firsts' => 'slug'
+    ],
     /**
      * Если колонка связи - изменчивый инкрементарный id
      * Если в модели не указана конкретная колонка с помощью свойства migrationColumnKey
@@ -17,4 +25,5 @@ return [
      * false - Выбрасываем исключение, т.к. не можем мигрировать поля с инкрементарным id
      */
     'try_find_unique_relation_column' => env('MIGRATION_TRY_FIND_UNIQUE_RELATION_COLUMN', true),
+    'try_use_index_for_sync_on_import' => true,
 ];

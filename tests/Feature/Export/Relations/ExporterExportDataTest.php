@@ -1,0 +1,700 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Cat4year\DataMigratorTests\Feature\Export\Relations;
+
+use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
+use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
+use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
+use Cat4year\DataMigrator\Services\DataMigrator\Export\ExportConfigurator;
+use Cat4year\DataMigrator\Services\DataMigrator\Export\Exporter;
+use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationsExporter;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
+use Cat4year\DataMigratorTests\App\Models\SlugFirst;
+use Cat4year\DataMigratorTests\Resource\Export\ExporterTestSeeder;
+use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Cat4year\DataMigratorTests\Feature\BaseTestCase;
+
+final class ExporterExportDataTest extends BaseTestCase
+{
+    use DatabaseMigrations;
+
+    /**
+     * @param array<class-string<Model>, list<int|string>> $excepted
+     *
+     * @throws BindingResolutionException
+     */
+    #[DataProvider('provide_collect_belongs_to_relations')]
+    #[DataProvider('provide_collect_morph_one_relations')]
+    public function test_exportData(
+        string $entityClass,
+        array $ids,
+        int $maxDepth,
+        string $seederClass,
+        array $excepted,
+        ?string $relationTypeClass = null,
+    ): void
+    {
+        $this->seed($seederClass);
+        $configurator = app(ExportConfigurator::class);
+        $configurator->setIds($ids)->setMaxRelationDepth($maxDepth);
+        if ($relationTypeClass !== null) {
+            $configurator->setSupportedRelations([$relationTypeClass]);
+        }
+        $relationManager = app()->makeWith(RelationsExporter::class, compact('configurator'));
+        $exporter = app()->makeWith(Exporter::class,
+            [
+                'relationManager' => $relationManager,
+                'entity' => app(TableService::class)->identifyModelByTable($entityClass)
+            ]);
+
+        $this->assertEquals($excepted, $this->prepareForAssert($exporter->exportData()));
+    }
+
+    private function prepareForAssert(array $exportData): array
+    {
+        $result = [];
+
+        foreach ($exportData as $tableName => $tableData) {
+            $result[$tableName] = $this->removeKeysFromItems($tableData, ['updated_at']);
+        }
+
+        return $result;
+    }
+
+    private function removeKeysFromItems(array $tableData, array $keysForRemove): array
+    {
+        if (!isset($tableData['items']) || !is_array($tableData['items'])) {
+            return $tableData;
+        }
+
+        foreach ($tableData['items'] as $index => $item) {
+            foreach ($keysForRemove as $key) {
+                unset($tableData['items'][$index][$key]);
+            }
+        }
+
+        return $tableData;
+    }
+
+    public static function provide_collect_belongs_to_relations(): array
+    {
+        return [
+            'exportData SlugFirst (foreign nullable true) belongsTo lvl1' => [
+                'slug_firsts',
+                [1, 2, 3],
+                1,
+                ExporterTestSeeder::class,
+                [
+                    'slug_firsts' => [
+                        'items' => [
+                            1 => [
+                                'id' => 'rem-ut',
+                                'slug' => 'rem-ut',
+                                'bool_test' => false,
+                                'timestamp_test' => '1979-01-08 13:09:37',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === 2',
+                                'int_test' => 13098,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => 2,
+                            ],
+                            2 => [
+                                'id' => 'consectetur-illum-voluptatibus',
+                                'slug' => 'consectetur-illum-voluptatibus',
+                                'bool_test' => true,
+                                'timestamp_test' => '2018-04-05 07:14:23',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === null',
+                                'int_test' => 855576,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => null,
+                            ],
+                            3 => [
+                                'id' => 'dignissimos',
+                                'slug' => 'dignissimos',
+                                'bool_test' => true,
+                                'timestamp_test' => '2004-05-12 00:28:59',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === 1',
+                                'int_test' => 56598568,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => 1,
+                            ],
+                        ],
+                        'modifiedAttributes' => [
+                            'slug_three_id' => new ExportModifyForeignColumn(...[
+                                'tableName' => 'slug_firsts',
+                                'keyName' => 'slug_three_id',
+                                'foreignTableName' => 'slug_threes',
+                                'foreignUniqueKeyName' => 'slug',
+                                'foreignOldKeyName' => 'id',
+                                'nullable' => true,
+                                'autoincrement' => false,
+                                'isPrimaryKey' => false,
+                            ]),
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_firsts',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => 'slug',
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
+                        ],
+                    ],
+                ],
+                BelongsTo::class,
+            ],
+            'exportData SlugFirst (foreign nullable true) belongsTo lvl2' => [
+                'slug_firsts',
+                [1, 2, 3],
+                2,
+                ExporterTestSeeder::class,
+                [
+                    'slug_firsts' => [
+                        'items' => [
+                            1 => [
+                                'id' => 'rem-ut',
+                                'slug' => 'rem-ut',
+                                'bool_test' => false,
+                                'timestamp_test' => '1979-01-08 13:09:37',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === 2',
+                                'int_test' => 13098,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => 'et-repellendus-odit-possimus',
+                            ],
+                            2 => [
+                                'id' => 'consectetur-illum-voluptatibus',
+                                'slug' => 'consectetur-illum-voluptatibus',
+                                'bool_test' => true,
+                                'timestamp_test' => '2018-04-05 07:14:23',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === null',
+                                'int_test' => 855576,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => null,
+                            ],
+                            3 => [
+                                'id' => 'dignissimos',
+                                'slug' => 'dignissimos',
+                                'bool_test' => true,
+                                'timestamp_test' => '2004-05-12 00:28:59',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === 1',
+                                'int_test' => 56598568,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => 'magnam-dolorum',
+                            ],
+                        ],
+                        'modifiedAttributes' => [
+                            'slug_three_id' => new ExportModifyForeignColumn(...[
+                                'tableName' => 'slug_firsts',
+                                'keyName' => 'slug_three_id',
+                                'foreignTableName' => 'slug_threes',
+                                'foreignUniqueKeyName' => 'slug',
+                                'foreignOldKeyName' => 'id',
+                                'nullable' => true,
+                                'autoincrement' => false,
+                                'isPrimaryKey' => false,
+                            ]),
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_firsts',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => 'slug',
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
+                        ],
+                    ],
+                    'slug_threes' => [
+                        'items' => [
+                            1 => [
+                                'id' => 'magnam-dolorum',
+                                'slug' => 'magnam-dolorum',
+                                'name' => 'Velit qui tenetur amet amet c...uatur.',
+                                'created_at' => '2025-05-13 02:37:33',
+                                'slug_second_id' => 2,
+                            ],
+                            2 => [
+                                'id' => 'et-repellendus-odit-possimus',
+                                'slug' => 'et-repellendus-odit-possimus',
+                                'name' => 'Nobis enim omnis et distincti...ntium.',
+                                'created_at' => '2025-05-13 02:37:33',
+                                'slug_second_id' => 2,
+                            ],
+                        ],
+                        'modifiedAttributes' => [
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_threes',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => 'slug',
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
+                            'slug_second_id' => new ExportModifyForeignColumn(...[
+                                'tableName' => 'slug_threes',
+                                'keyName' => 'slug_second_id',
+                                'foreignTableName' => 'slug_seconds',
+                                'foreignUniqueKeyName' => 'slug',
+                                'foreignOldKeyName' => 'id',
+                                'nullable' => true,
+                                'autoincrement' => false,
+                                'isPrimaryKey' => false,
+                            ]),
+                        ],
+                    ]
+                ],
+                BelongsTo::class,
+            ],
+            'exportData SlugSecond (foreign nullable false) belongsTo  lvl2' => [
+                'slug_seconds',
+                [1, 2, 3],
+                2,
+                ExporterTestSeeder::class,
+                [
+                    'slug_seconds' => [
+                        'items' => [
+                            1 => [
+                                'id' => 'autem-architecto-vel-quia-repudiandae',
+                                'slug' => 'autem-architecto-vel-quia-repudiandae',
+                                'created_at' => '2025-05-13 02:44:18',
+                                'name' => 'Quibusdam velit aut suscipit ...uidem.',
+                                'slug_first_id' => 'dignissimos',
+                            ],
+                            2 => [
+                                'id' => 'hic-sit-illum',
+                                'slug' => 'hic-sit-illum',
+                                'created_at' => '2025-05-13 02:44:18',
+                                'name' => 'Quia ipsa quas ut dolor nostr...eaque.',
+                                'slug_first_id' => 'consectetur-illum-voluptatibus'
+                            ],
+                            3 => [
+                                'id' => 'enim',
+                                'slug' => 'enim',
+                                'created_at' => '2025-05-13 02:44:18',
+                                'name' => 'Aut nisi aut perferendis iure eaque.',
+                                'slug_first_id' => 'rem-ut',
+                            ],
+                        ],
+                        'modifiedAttributes' => [
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_seconds',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => 'slug',
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
+                            'slug_first_id' => new ExportModifyForeignColumn(...[
+                                'tableName' => 'slug_seconds',
+                                'keyName' => 'slug_first_id',
+                                'foreignTableName' => 'slug_firsts',
+                                'foreignUniqueKeyName' => 'slug',
+                                'foreignOldKeyName' => 'id',
+                                'nullable' => false,
+                                'autoincrement' => false,
+                                'isPrimaryKey' => false,
+                            ]),
+                        ],
+                    ],
+                    'slug_firsts' => [
+                        'items' => [
+                            1 => [
+                                'id' => 'rem-ut',
+                                'slug' => 'rem-ut',
+                                'bool_test' => false,
+                                'timestamp_test' => '1979-01-08 13:09:37',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === 2',
+                                'int_test' => 13098,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => 2,
+                            ],
+                            2 => [
+                                'id' => 'consectetur-illum-voluptatibus',
+                                'slug' => 'consectetur-illum-voluptatibus',
+                                'bool_test' => true,
+                                'timestamp_test' => '2018-04-05 07:14:23',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === null',
+                                'int_test' => 855576,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => null,
+                            ],
+                            3 => [
+                                'id' => 'dignissimos',
+                                'slug' => 'dignissimos',
+                                'bool_test' => true,
+                                'timestamp_test' => '2004-05-12 00:28:59',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === 1',
+                                'int_test' => 56598568,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => 1,
+                            ],
+                        ],
+                        'modifiedAttributes' => [
+                            'slug_three_id' => new ExportModifyForeignColumn(...[
+                                'tableName' => 'slug_firsts',
+                                'keyName' => 'slug_three_id',
+                                'foreignTableName' => 'slug_threes',
+                                'foreignUniqueKeyName' => 'slug',
+                                'foreignOldKeyName' => 'id',
+                                'nullable' => true,
+                                'autoincrement' => false,
+                                'isPrimaryKey' => false,
+                            ]),
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_firsts',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => 'slug',
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
+                        ],
+                    ],
+                ],
+                BelongsTo::class,
+            ],
+            'exportData SlugSecond (foreign nullable false) belongsTo  lvl3' => [
+                'slug_seconds',
+                [1, 2, 3],
+                3,
+                ExporterTestSeeder::class,
+                [
+                    'slug_seconds' => [
+                        'items' => [
+                            1 => [
+                                'id' => 'autem-architecto-vel-quia-repudiandae',
+                                'slug' => 'autem-architecto-vel-quia-repudiandae',
+                                'created_at' => '2025-05-13 02:44:18',
+                                'name' => 'Quibusdam velit aut suscipit ...uidem.',
+                                'slug_first_id' => 'dignissimos',
+                            ],
+                            2 => [
+                                'id' => 'hic-sit-illum',
+                                'slug' => 'hic-sit-illum',
+                                'created_at' => '2025-05-13 02:44:18',
+                                'name' => 'Quia ipsa quas ut dolor nostr...eaque.',
+                                'slug_first_id' => 'consectetur-illum-voluptatibus'
+                            ],
+                            3 => [
+                                'id' => 'enim',
+                                'slug' => 'enim',
+                                'created_at' => '2025-05-13 02:44:18',
+                                'name' => 'Aut nisi aut perferendis iure eaque.',
+                                'slug_first_id' => 'rem-ut',
+                            ],
+                        ],
+                        'modifiedAttributes' => [
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_seconds',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => 'slug',
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
+                            'slug_first_id' => new ExportModifyForeignColumn(...[
+                                'tableName' => 'slug_seconds',
+                                'keyName' => 'slug_first_id',
+                                'foreignTableName' => 'slug_firsts',
+                                'foreignUniqueKeyName' => 'slug',
+                                'foreignOldKeyName' => 'id',
+                                'nullable' => false,
+                                'autoincrement' => false,
+                                'isPrimaryKey' => false,
+                            ]),
+                        ],
+                    ],
+                    'slug_firsts' => [
+                        'items' => [
+                            1 => [
+                                'id' => 'rem-ut',
+                                'slug' => 'rem-ut',
+                                'bool_test' => false,
+                                'timestamp_test' => '1979-01-08 13:09:37',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === 2',
+                                'int_test' => 13098,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => 'et-repellendus-odit-possimus',
+                            ],
+                            2 => [
+                                'id' => 'consectetur-illum-voluptatibus',
+                                'slug' => 'consectetur-illum-voluptatibus',
+                                'bool_test' => true,
+                                'timestamp_test' => '2018-04-05 07:14:23',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === null',
+                                'int_test' => 855576,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => null,
+                            ],
+                            3 => [
+                                'id' => 'dignissimos',
+                                'slug' => 'dignissimos',
+                                'bool_test' => true,
+                                'timestamp_test' => '2004-05-12 00:28:59',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === 1',
+                                'int_test' => 56598568,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => 'magnam-dolorum',
+                            ],
+                        ],
+                        'modifiedAttributes' => [
+                            'slug_three_id' => new ExportModifyForeignColumn(...[
+                                'tableName' => 'slug_firsts',
+                                'keyName' => 'slug_three_id',
+                                'foreignTableName' => 'slug_threes',
+                                'foreignUniqueKeyName' => 'slug',
+                                'foreignOldKeyName' => 'id',
+                                'nullable' => true,
+                                'autoincrement' => false,
+                                'isPrimaryKey' => false,
+                            ]),
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_firsts',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => 'slug',
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
+                        ],
+                    ],
+                    'slug_threes' => [
+                        'items' => [
+                            1 => [
+                                'id' => 'magnam-dolorum',
+                                'slug' => 'magnam-dolorum',
+                                'name' => 'Velit qui tenetur amet amet c...uatur.',
+                                'created_at' => '2025-05-13 02:37:33',
+                                'slug_second_id' => 'hic-sit-illum',
+                            ],
+                            2 => [
+                                'id' => 'et-repellendus-odit-possimus',
+                                'slug' => 'et-repellendus-odit-possimus',
+                                'name' => 'Nobis enim omnis et distincti...ntium.',
+                                'created_at' => '2025-05-13 02:37:33',
+                                'slug_second_id' => 'hic-sit-illum',
+                            ],
+                        ],
+                        'modifiedAttributes' => [
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_threes',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => 'slug',
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
+                            'slug_second_id' => new ExportModifyForeignColumn(...[
+                                'tableName' => 'slug_threes',
+                                'keyName' => 'slug_second_id',
+                                'foreignTableName' => 'slug_seconds',
+                                'foreignUniqueKeyName' => 'slug',
+                                'foreignOldKeyName' => 'id',
+                                'nullable' => true,
+                                'autoincrement' => false,
+                                'isPrimaryKey' => false,
+                            ]),
+                        ],
+                    ]
+                ],
+                BelongsTo::class,
+            ],
+            'exportData SlugThree belongsTo lvl3' => [
+                'slug_threes',
+                [1, 2, 3],
+                2,
+                ExporterTestSeeder::class,
+                [
+                    'slug_threes' => [
+                        'items' => [
+                            1 => [
+                                'id' => 'magnam-dolorum',
+                                'slug' => 'magnam-dolorum',
+                                'name' => 'Velit qui tenetur amet amet c...uatur.',
+                                'created_at' => '2025-05-13 02:37:33',
+                                'slug_second_id' => 'hic-sit-illum',
+                            ],
+                            2 => [
+                                'id' => 'et-repellendus-odit-possimus',
+                                'slug' => 'et-repellendus-odit-possimus',
+                                'name' => 'Nobis enim omnis et distincti...ntium.',
+                                'created_at' => '2025-05-13 02:37:33',
+                                'slug_second_id' => 'hic-sit-illum',
+                            ],
+                            3 => [
+                                'id' => 'slug-three-3',
+                                'slug' => 'slug-three-3',
+                                'name' => 'Slug three three',
+                                'created_at' => '2025-05-13 02:37:33',
+                                'slug_second_id' => 'autem-architecto-vel-quia-repudiandae',
+                            ],
+                        ],
+                        'modifiedAttributes' => [
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_threes',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => 'slug',
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
+                            'slug_second_id' => new ExportModifyForeignColumn(...[
+                                'tableName' => 'slug_threes',
+                                'keyName' => 'slug_second_id',
+                                'foreignTableName' => 'slug_seconds',
+                                'foreignUniqueKeyName' => 'slug',
+                                'foreignOldKeyName' => 'id',
+                                'nullable' => true,
+                                'autoincrement' => false,
+                                'isPrimaryKey' => false,
+                            ]),
+                        ],
+                    ],
+                    'slug_seconds' => [
+        'items' => [
+            1 => [
+                'id' => 'autem-architecto-vel-quia-repudiandae',
+                'slug' => 'autem-architecto-vel-quia-repudiandae',
+                'created_at' => '2025-05-13 02:44:18',
+                'name' => 'Quibusdam velit aut suscipit ...uidem.',
+                'slug_first_id' => 3,
+            ],
+            2 => [
+                'id' => 'hic-sit-illum',
+                'slug' => 'hic-sit-illum',
+                'created_at' => '2025-05-13 02:44:18',
+                'name' => 'Quia ipsa quas ut dolor nostr...eaque.',
+                'slug_first_id' => 2
+            ],
+        ],
+        'modifiedAttributes' => [
+            'id' => new ExportModifySimpleColumn(...[
+                'tableName' => 'slug_seconds',
+                'keyName' => 'id',
+                'uniqueKeyName' => 'slug',
+                'nullable' => false,
+                'autoincrement' => true,
+                'isPrimaryKey' => true,
+            ]),
+            'slug_first_id' => new ExportModifyForeignColumn(...[
+                'tableName' => 'slug_seconds',
+                'keyName' => 'slug_first_id',
+                'foreignTableName' => 'slug_firsts',
+                'foreignUniqueKeyName' => 'slug',
+                'foreignOldKeyName' => 'id',
+                'nullable' => false,
+                'autoincrement' => false,
+                'isPrimaryKey' => false,
+            ]),
+        ],
+    ],
+                ],
+                BelongsTo::class,
+            ],
+        ];
+    }
+
+    public static function provide_collect_morph_one_relations(): array
+    {
+        return [
+            'exportData morphOne lvl2' => [
+                'slug_firsts',
+                [1, 2, 3],
+                2,
+                ExporterTestSeeder::class,
+                [
+                    'slug_firsts' => [
+                        'items' => [
+                            1 => [
+                                'id' => 'rem-ut',
+                                'slug' => 'rem-ut',
+                                'bool_test' => false,
+                                'timestamp_test' => '1979-01-08 13:09:37',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === 2',
+                                'int_test' => 13098,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => 2,
+                            ],
+                            2 => [
+                                'id' => 'consectetur-illum-voluptatibus',
+                                'slug' => 'consectetur-illum-voluptatibus',
+                                'bool_test' => true,
+                                'timestamp_test' => '2018-04-05 07:14:23',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === null',
+                                'int_test' => 855576,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => null,
+                            ],
+                            3 => [
+                                'id' => 'dignissimos',
+                                'slug' => 'dignissimos',
+                                'bool_test' => true,
+                                'timestamp_test' => '2004-05-12 00:28:59',
+                                'string_test' => 'Здесь есть уникальный столбец slug и belongsTo колонка slug_three_id === 1',
+                                'int_test' => 56598568,
+                                'created_at' => '2025-05-13 01:49:12',
+                                'slug_three_id' => 1,
+                            ],
+                        ],
+                        'modifiedAttributes' => [
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_firsts',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => 'slug',
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
+                        ],
+                    ],
+                    'slug_fours' => [
+                        'items' => [
+                            1 => [
+                                'id' => 'sfo1',
+                                'slug' => 'sfo1',
+                                'name' => 'sfo1',
+                                'created_at' => '2025-05-12 02:49:12',
+                                'slug_fourable_type' => SlugFirst::class,
+                                'slug_fourable_id' => 'rem-ut',
+                            ],
+                            2 => [
+                                'id' => 'sfo2',
+                                'slug' => 'sfo2',
+                                'name' => 'sfo2',
+                                'created_at' => '2025-12-12 01:49:12',
+                                'slug_fourable_type' => SlugFirst::class,
+                                'slug_fourable_id' => 'dignissimos',
+                            ],
+                        ],
+                        'modifiedAttributes' => [
+                            'id' => new ExportModifySimpleColumn(
+                                tableName: 'slug_fours',
+                                keyName: 'id',
+                                uniqueKeyName: 'slug',
+                                nullable: false,
+                                autoincrement: true,
+                                isPrimaryKey: true,
+                            ),
+                            'slug_fourable_id' => new ExportModifyMorphColumn(
+                                morphType: 'slug_fourable_type',
+                                tableName: 'slug_fours',
+                                keyName: 'slug_fourable_id',
+                                sourceKeyNames: ['slug_firsts' => 'slug'],
+                                sourceOldKeyNames: ['slug_firsts' => 'id'],
+                                nullable: false,
+                                autoincrement: false,
+                                isPrimaryKey: false,
+                            )
+                        ]
+                    ]
+                ],
+                MorphOne::class,
+            ],
+        ];
+    }
+}

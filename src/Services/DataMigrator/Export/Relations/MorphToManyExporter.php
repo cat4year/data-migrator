@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export\Relations;
 
+use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
+use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
+use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\ModelService;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use DB;
@@ -127,63 +130,52 @@ final readonly class MorphToManyExporter implements RelationExporter
         $parentPivotKeyName = $this->relation->getForeignPivotKeyName();
         $relatedPivotKeyName = $this->relation->getRelatedPivotKeyName();
 
-        $parentModifyInfo = [
-            'table' => $parentTable,
-            'oldKeyName' => $parentKeyName,
-            'keyName' => $uniqueKeyName,
-            'autoIncrement' => $this->tableRepository->isAutoincrementColumn($parentTable, $parentKeyName),
-            'nullable' => $this->tableRepository->isNullableColumn($parentTable, $parentKeyName),
-        ];
+        $parentTableColumn = new ExportModifySimpleColumn(
+            tableName: $parentTable,
+            keyName: $parentKeyName,
+            uniqueKeyName: $uniqueKeyName,
+            nullable: $this->tableRepository->isNullableColumn($parentTable, $parentKeyName),
+            autoincrement: $this->tableRepository->isAutoincrementColumn($parentTable, $parentKeyName),
+        );
 
-        $relatedModifyInfo = [
-            'table' => $relatedTable,
-            'oldKeyName' => $relatedKeyName,
-            'keyName' => $uniqueRelatedKeyName,
-            'autoIncrement' => $this->tableRepository->isAutoincrementColumn($relatedTable, $relatedKeyName),
-            'nullable' => $this->tableRepository->isNullableColumn($relatedTable, $relatedKeyName),
-        ];
+        $relatedTableColumn = new ExportModifySimpleColumn(
+            tableName: $relatedTable,
+            keyName: $relatedKeyName,
+            uniqueKeyName: $uniqueRelatedKeyName,
+            nullable: $this->tableRepository->isNullableColumn($relatedTable, $relatedKeyName),
+            autoincrement: $this->tableRepository->isAutoincrementColumn($relatedTable, $relatedKeyName),
+        );
 
-        $pivotParentModifyInfo = [
-            'morphType' => $this->relation->getMorphType(),
-            'autoIncrement' => $this->tableRepository->isAutoincrementColumn($pivotTable, $parentPivotKeyName),
-            'nullable' => $this->tableRepository->isNullableColumn($pivotTable, $parentPivotKeyName),
-            'oldKeyNames' => [$parentTable => $parentKeyName],
-            'keyNames' => [$parentTable => $uniqueKeyName],
-        ];
+        $pivotParentMorphColumn = new ExportModifyMorphColumn(
+            morphType: $this->relation->getMorphType(),
+            tableName: $relatedTable,
+            keyName: $this->relation->getRelatedPivotKeyName(),//todo: вот тут то пупупу. Что делать? Ключ должен быть составным. Возможно должно быть nullable? Юзается ли?
+            sourceKeyNames: [$parentTable => $uniqueKeyName],
+            sourceOldKeyNames: [$parentTable => $parentKeyName],
+            nullable: $this->tableRepository->isNullableColumn($pivotTable, $parentPivotKeyName),
+            autoincrement: $this->tableRepository->isAutoincrementColumn($pivotTable, $parentPivotKeyName),
+        );
 
-        $result = [
+        $pivotRelatedForeignColumn = new ExportModifyForeignColumn(
+            tableName: $relatedTable,
+            keyName: $relatedKeyName,
+            foreignTableName: $relatedTable,
+            foreignUniqueKeyName: $uniqueRelatedKeyName,
+            foreignOldKeyName: $relatedKeyName,
+            nullable: $this->tableRepository->isNullableColumn($pivotTable, $relatedKeyName),
+        );
+
+        return [
             $parentTable => [
-                $parentKeyName => $parentModifyInfo + ['isPrimaryKey' => true],
+                $parentKeyName => $parentTableColumn,
             ],
             $relatedTable => [
-                $relatedKeyName => $relatedModifyInfo + ['isPrimaryKey' => true],
+                $relatedKeyName => $relatedTableColumn,
             ],
             $pivotTable => [
-                $parentPivotKeyName => $pivotParentModifyInfo,
-                $relatedPivotKeyName => [
-                    'table' => $relatedTable,
-                    'oldKeyName' => $relatedKeyName,
-                    'keyName' => $uniqueRelatedKeyName,
-                    'autoIncrement' => $this->tableRepository->isAutoincrementColumn($pivotTable, $relatedPivotKeyName),
-                    'nullable' => $this->tableRepository->isNullableColumn($pivotTable, $relatedPivotKeyName),
-                ],
+                $parentPivotKeyName => $pivotParentMorphColumn,
+                $relatedPivotKeyName => $pivotRelatedForeignColumn,
             ],
         ];
-
-        $pivotIdKeyName = $this->getPivotIdColumnKeyName(true);
-        if ($pivotIdKeyName !== $parentPivotKeyName && $pivotIdKeyName !== $relatedPivotKeyName) {
-            $result[$pivotTable][$pivotIdKeyName] = [
-                'table' => $pivotTable,
-                'oldKeyName' => $pivotIdKeyName,
-                'keyName' => $pivotIdKeyName,
-                'autoIncrement' => $this->tableRepository->isAutoincrementColumn($pivotTable, $pivotIdKeyName),
-                'nullable' => $this->tableRepository->isNullableColumn($pivotTable, $pivotIdKeyName),
-            ];
-        }
-
-        $pivotIdModifyPrimaryAttributes = ['isPrimaryKey' => true];
-        $result[$pivotTable][$pivotIdKeyName] += $pivotIdModifyPrimaryAttributes;
-
-        return $result;
     }
 }

@@ -30,6 +30,19 @@ final class DiskTest extends BaseTestCase
         $this->assertTrue($storage->exists($path));
     }
 
+    public function test_get_attachment()
+    {
+        $attachment = Storage::disk('testing')->get('avatars/5d11b2895cecbda580a9f667bd26a6389143c982.jpg');
+
+        $this->assertNotNull($attachment);
+    }
+
+    protected function getEnvironmentSetUp($app): void
+    {
+        $app['config']->set('filesystems.disks.testing.driver', 'local');
+        $app['config']->set('filesystems.disks.testing.root', realpath(__DIR__.'/../Resource/Files'));
+    }
+
     protected function tearDown(): void
     {
         // Storage::fake('public');

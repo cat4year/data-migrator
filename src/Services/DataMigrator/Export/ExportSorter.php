@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export;
 
+use Cat4year\DataMigrator\Entity\ExportModifyColumn;
+use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
+
 final class ExportSorter
 {
     public function sort(array $tables): array
@@ -20,6 +23,9 @@ final class ExportSorter
         return $this->sortTables($cycleTables, $graph, $originalTables);
     }
 
+    /**
+     * @param array<string, array{items: array<int|string, array<string|mixed>>, modifiedAttributes: list<ExportModifyColumn>}> $tables
+     */
     private function buildDependencyGraph(array $tables): array
     {
         $graph = [];
@@ -32,27 +38,28 @@ final class ExportSorter
             ];
 
             if (isset($tableInfo['modifiedAttributes'])) {
-                foreach ($tableInfo['modifiedAttributes'] as $attrInfo) {
-                    if (! array_key_exists('table', $attrInfo)) {
-                        $graph[$tableName]['dependencies'] = array_keys($attrInfo['keyNames']); // или oldKeyNames
+                foreach ($tableInfo['modifiedAttributes'] as $column) {
+                    if ($column instanceof ExportModifyMorphColumn) {
+                        $graph[$tableName]['dependencies'] = array_keys($column->getSourceKeyNames()); // или oldKeyNames
 
                         // todo: это морф ключ. Может нужно добваить tables и добавить их зависимости.
                         continue;
                     }
 
-                    if ($attrInfo['table'] !== $tableName) {
-                        $graph[$tableName]['dependencies'][] = $attrInfo['table'];
-                        if (! isset($graph[$attrInfo['table']])) {
-                            $graph[$attrInfo['table']] = [
-                                'name' => $attrInfo['table'],
+                    $columnTableName = $column->getTableName();
+                    if ($columnTableName !== $tableName) {
+                        $graph[$tableName]['dependencies'][] = $columnTableName;
+                        if (! isset($graph[$columnTableName])) {
+                            $graph[$columnTableName] = [
+                                'name' => $columnTableName,
                                 'dependencies' => [],
                                 'hasNullableKey' => false,
                                 'referenced_by' => [],
                             ];
                         }
-                        $graph[$attrInfo['table']]['referenced_by'][] = $tableName;
+                        $graph[$columnTableName]['referenced_by'][] = $tableName;
 
-                        if ($attrInfo['nullable']) {
+                        if ($column->isNullable()) {
                             $graph[$tableName]['hasNullableKey'] = true;
                         }
                     }

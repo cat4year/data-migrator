@@ -70,7 +70,7 @@ $data = [
         ],
     ],
     'additional' => [
-        'entity' => 'Tests\App\Models\SlugFirst',
+        'entity' => 'Cat4year\DataMigratorTests\App\Models\SlugFirst',
         'idColumn' => 'slug',
         'relations' => [
             1 => [
@@ -92,7 +92,7 @@ $data = [
                     ],
                 ],
                 'additional' => [
-                    'entity' => 'Tests\App\Models\SlugSecond',
+                    'entity' => 'Cat4year\DataMigratorTests\App\Models\SlugSecond',
                     'idColumn' => 'slug',
                     'relations' => [],
                     'type' => 'Illuminate\\Database\\Eloquent\\Relations\\HasOne',

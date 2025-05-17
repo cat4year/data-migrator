@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\Php;
 
+use Brick\VarExporter\ExportException;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\MigrationDataSourceFormat;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Filesystem\Filesystem;
+use JsonException;
 use RuntimeException;
+use function Cat4year\DataMigrator\Helpers\var_pretty_export;
 
 final readonly class PhpMigrationDataSourceFormat implements MigrationDataSourceFormat
 {
@@ -18,11 +21,13 @@ final readonly class PhpMigrationDataSourceFormat implements MigrationDataSource
     }
 
     /**
+     * @throws ExportException
      * @throws FileNotFoundException
+     * @throws JsonException
      */
     public function save(array $data, string $path): void
     {
-        $result = $this->arrayToPhp->prepareStubBeforeSave($data);
+        $result = $this->prepareForSave($data);
 
         $this->files->ensureDirectoryExists(dirname($path));
         $this->files->put($path, $result);
@@ -40,5 +45,40 @@ final readonly class PhpMigrationDataSourceFormat implements MigrationDataSource
         }
 
         return $data;
+    }
+
+    /**
+     * @throws ExportException
+     * @throws FileNotFoundException
+     * @throws JsonException
+     */
+    private function prepareForSave(array $exportData): string
+    {
+        return $this->arrayToPhp->prepareStubBeforeSave($this->prepare($exportData));
+    }
+
+    /**
+     * @throws ExportException
+     * @throws JsonException
+     */
+    public function prepareForMigration(array $exportData): string
+    {
+        return $this->prepare($exportData);
+    }
+
+    /**
+     * @throws ExportException
+     * @throws JsonException
+     */
+    private function prepare(array $exportData): string
+    {
+        $exportDataWithoutObjects = json_decode(
+            json_encode($exportData, JSON_THROW_ON_ERROR),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+
+        return var_pretty_export($exportDataWithoutObjects, true);
     }
 }

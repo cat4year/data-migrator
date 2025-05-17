@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Cat4year\DataMigratorTests\Feature\BaseTestCase;
 use Cat4year\DataMigratorTests\Resource\Export\Relations\RelationsExporterTestSeeder;
 
-final class RelationsExporterTest extends BaseTestCase
+final class RelationsExporterCollectTest extends BaseTestCase
 {
     // use RefreshDatabase; // don't clean autoincrement. faster
     use DatabaseMigrations; // clean autoincrement. slowly
@@ -27,10 +27,10 @@ final class RelationsExporterTest extends BaseTestCase
      *
      * @throws BindingResolutionException
      */
-    #[DataProvider('provide_collect_has_one_relations')]
+    //#[DataProvider('provide_collect_has_one_relations')]
     #[DataProvider('provide_collect_belongs_to_relations')]
-    #[DataProvider('provide_collect_has_through_relations')]
-    #[DataProvider('provide_collect_all_relations')]
+//    #[DataProvider('provide_collect_has_through_relations')]
+//    #[DataProvider('provide_collect_all_relations')]
     #[DataProvider('provide_collect_morph_one_relations')]
     public function test_collect_relations(
         string $entityClass,

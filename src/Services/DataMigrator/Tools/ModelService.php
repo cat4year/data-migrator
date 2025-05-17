@@ -28,6 +28,29 @@ final readonly class ModelService
         }
     }
 
+    public function getUniqueColumnsForSync(Model $model): ?array
+    {
+        try {
+            $tableColumnMap = config('data-migrator.table_unique_column_map');
+            if (isset($tableColumnMap[$model->getTable()])) {
+                if (is_string($tableColumnMap[$model->getTable()])) {
+                    return [$tableColumnMap[$model->getTable()]];
+                }
+
+                return $tableColumnMap[$model->getTable()];
+            }
+
+            $modelKey = $model->getKeyName();
+            if ($model->getKeyName() === 'id' && $model->getKeyType() === 'int' && ! $model->isFillable('id')) {
+                $modelKey = $this->getFromAttributeOrTryFindIdColumn($model);
+            }
+
+            return [$modelKey];
+        } catch (RuntimeException) {
+            return null;
+        }
+    }
+
     public function getFromAttributeOrTryFindIdColumn(Model $model): string
     {
         if (! $model->hasAttribute('migrationColumnKey')) { // todo: добавить треит и везде его где не используется
@@ -42,5 +65,10 @@ final readonly class ModelService
         }
 
         return $model->getAttribute('migrationColumnKey');
+    }
+
+    public function implodeUniqueColumns(array $parentKeyNames): string
+    {
+        return implode('|', $parentKeyNames);
     }
 }

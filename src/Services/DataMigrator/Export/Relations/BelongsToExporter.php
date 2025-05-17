@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export\Relations;
 
+use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
+use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\ModelService;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Illuminate\Contracts\Container\BindingResolutionException;
@@ -16,15 +18,14 @@ final readonly class BelongsToExporter implements RelationExporter
         private BelongsTo $relation,
         private ModelService $modelService,
         private TableService $tableRepository,
-    ) {
-    }
+    ) {}
 
     /**
      * @throws BindingResolutionException
      */
     public static function create(BelongsTo $relation): self
     {
-        return app()->makeWith(self::class, ['relation' => $relation]);
+        return app()->makeWith(self::class, compact('relation'));
     }
 
     public function makeExportData(array $foreignIds): array
@@ -88,32 +89,42 @@ final readonly class BelongsToExporter implements RelationExporter
             // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
         }
 
+        $parentTableForeignColumn = new ExportModifyForeignColumn(
+            tableName: $parentTable,
+            keyName: $foreignKeyName,
+            foreignTableName: $relatedTable,
+            foreignUniqueKeyName: $uniqueRelatedKeyName,
+            foreignOldKeyName: $oldForeignKeyName,
+            nullable: $this->tableRepository->isNullableColumn($parentTable, $foreignKeyName),
+        );
+
+        $parentTableColumn = new ExportModifySimpleColumn(
+            tableName: $parentTable,
+            keyName: $parentKeyName,
+            uniqueKeyName: $uniqueParentKeyName,
+            nullable: $this->tableRepository->isNullableColumn($parentTable, $parentKeyName),
+            autoincrement: $this->tableRepository->isAutoincrementColumn($parentTable, $parentKeyName),
+        );
+
+        $relatedTableColumn = new ExportModifySimpleColumn(
+            tableName: $relatedTable,
+            keyName: $relatedKeyName,
+            uniqueKeyName: $uniqueRelatedKeyName,
+            nullable: $this->tableRepository->isNullableColumn($relatedTable, $relatedKeyName),
+            autoincrement: $this->tableRepository->isAutoincrementColumn($relatedTable, $relatedKeyName),
+        );
+
+        //$this->exportModifyInfo::add($parentTableForeignColumn);
+        //$this->exportModifyInfo::add($parentTableColumn);
+        //$this->exportModifyInfo::add($relatedTableColumn);
+
         return [
             $parentTable => [
-                $foreignKeyName => [
-                    'table' => $relatedTable,
-                    'oldKeyName' => $oldForeignKeyName,
-                    'keyName' => $uniqueForeignKeyName,
-                    'nullable' => $this->tableRepository->isNullableColumn($parentTable, $foreignKeyName),
-                ],
-                $parentKeyName => [
-                    'table' => $parentTable,
-                    'oldKeyName' => $parentKeyName,
-                    'keyName' => $uniqueParentKeyName,
-                    'isPrimaryKey' => true,
-                    'autoIncrement' => $this->tableRepository->isAutoincrementColumn($parentTable, $parentKeyName),
-                    'nullable' => $this->tableRepository->isNullableColumn($parentTable, $parentKeyName),
-                ],
+                $parentTableForeignColumn->getKeyName() => $parentTableForeignColumn,
+                $parentTableColumn->getKeyName() => $parentTableColumn,
             ],
             $relatedTable => [
-                $relatedKeyName => [
-                    'table' => $relatedTable,
-                    'oldKeyName' => $relatedKeyName,
-                    'keyName' => $uniqueRelatedKeyName,
-                    'isPrimaryKey' => true,
-                    'autoIncrement' => $this->tableRepository->isAutoincrementColumn($relatedTable, $relatedKeyName),
-                    'nullable' => $this->tableRepository->isNullableColumn($relatedTable, $relatedKeyName),
-                ],
+                $relatedKeyName => $relatedTableColumn,
             ],
         ];
     }

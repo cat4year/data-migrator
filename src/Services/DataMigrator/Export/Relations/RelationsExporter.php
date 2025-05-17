@@ -13,9 +13,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
+use RuntimeException;
 use Throwable;
 
 final readonly class RelationsExporter
@@ -176,95 +178,45 @@ final readonly class RelationsExporter
         return $relationEntities;
     }
 
-    public function modify(SupportCollection $entitiesCollections, SupportCollection $relationsInfo): array
+    private function addMetaUniqueDataForTables(array $modifiedResult): array
     {
-        $entitiesModifyInfo = [];
-        $entityClasses = $relationsInfo;
 
-        /** может быть избыточно если какаие-то связи отвалились */
-        foreach ($entityClasses as $entityTable => $relationsByEntity) {
-            // получить данные слагов для всех связанных моделей из $entitiesCollections
-            foreach ($relationsByEntity as $relationName => $relation) {
-                assert($relation instanceof Relation);
 
-                $relationModifier = $this->factory->createByRelation($relation, $entitiesCollections);
 
-                if ($relationModifier === null) {
+        return $modifiedResult;
+    }
+
+    /**
+     * @todo можно мемоизировать
+     */
+    private function identifyUniqueAttribute(array $tableData): string
+    {
+        $tableColumnMap = config('data-migrator.table_unique_column_map');
+        if (isset($tableColumnMap[$model->getTable()])) {
+            return $tableColumnMap[$model->getTable()];
+        }
+        if (config('data-migrator.table_unique_column_map') === true) {
+
+        }
+
+        foreach ($tableData['modifiedAttributes'] as $attributeKey => $modifyInfo) {
+            if (isset($modifyInfo['isPrimaryKey']) && $modifyInfo['isPrimaryKey'] === true) {
+                return $attributeKey;
+            }
+        }
+
+        if (config('data-migrator.try_use_index_for_sync_on_import') === true) { //todo: перенести это на уровень экспорта
+            $indexes = Schema::getIndexes($tableData['name']);
+
+            foreach ($indexes as $index){
+                if($index['primary'] === true){
                     continue;
                 }
 
-                $entitiesModifyInfo[$entityTable.'|'.$relationName] = $relationModifier->getModifyInfo();
+                //$index['columns']
             }
         }
 
-        $entitiesModifyInfoResult = [];
-        foreach ($entitiesModifyInfo as $modifyItemsForRelationName) {
-            foreach ($modifyItemsForRelationName as $table => $modifyInfo) {
-                foreach ($modifyInfo as $attributeKeyName => $modifyInfoForKey) {
-                    if (isset($modifyInfoForKey['table'])) {
-                        $entitiesModifyInfoResult[$table][$attributeKeyName] = $modifyInfoForKey;
-
-                        continue;
-                    }
-
-                    // морф связь. объединяем данные ключей для разных типов
-                    if (! isset($entitiesModifyInfoResult[$table][$attributeKeyName])) {
-                        $entitiesModifyInfoResult[$table][$attributeKeyName] = $modifyInfoForKey;
-                    } else {
-                        $entitiesModifyInfoResult[$table][$attributeKeyName]['oldKeyNames'] += $modifyInfoForKey['oldKeyNames'];
-                        $entitiesModifyInfoResult[$table][$attributeKeyName]['keyNames'] += $modifyInfoForKey['keyNames'];
-                    }
-                }
-            }
-        }
-        $entitiesModifyInfo = $entitiesModifyInfoResult; // todo
-
-        // подмена id
-        $entitiesCollections = $entitiesCollections->toArray();
-        $modifiedResult = [];
-        foreach ($entitiesCollections as $tableName => $entityInfo) {
-            foreach ($entityInfo['items'] as $itemKey => $attributes) {
-                $modifiedResult[$tableName]['items'][$itemKey] = $attributes;
-                foreach ($attributes as $attributeKeyName => $attributeValue) {
-                    if (
-                        ! array_key_exists($attributeKeyName, $entitiesModifyInfo[$tableName])
-                        || $attributeValue === null
-                    ) {
-                        continue;
-                    }
-
-                    // заменяем значение каждого атрибута на уникальный строковый ключ
-                    $modifyInfoByKey = $entitiesModifyInfo[$tableName][$attributeKeyName];
-
-                    if (isset($modifyInfoByKey['morphType'])) {
-                        $morphType = $modifyInfoByKey['morphType'];
-                        $morphClass = $attributes[$morphType];
-                        $modifyInfoTable = app($morphClass)->getTable();
-                        $modifyKeyName = $modifyInfoByKey['keyNames'][$modifyInfoTable];
-                    } else {
-                        $modifyInfoTable = $modifyInfoByKey['table'];
-                        $modifyKeyName = $modifyInfoByKey['keyName'];
-                    }
-
-                    try {
-                        $tableForFindNewAttributeValue = $entitiesCollections[$modifyInfoTable];
-                        $newValue = $tableForFindNewAttributeValue['items'][$attributeValue][$modifyKeyName];
-                    } catch (Throwable) {
-                        Log::error('Ошибка при подмене id', [
-                            $entitiesCollections,
-                            $modifyInfoTable,
-                            $tableForFindNewAttributeValue,
-                            $attributeValue,
-                            $modifyKeyName,
-                        ]);
-                    }
-
-                    $modifiedResult[$tableName]['items'][$itemKey][$attributeKeyName] = $newValue; // todo: variable not found
-                }
-            }
-            $modifiedResult[$tableName]['modifiedAttributes'] = $entitiesModifyInfo[$tableName];
-        }
-
-        return $modifiedResult;
+        throw new RuntimeException('Не смогли определить уникальный id для таблицы ');
     }
 }

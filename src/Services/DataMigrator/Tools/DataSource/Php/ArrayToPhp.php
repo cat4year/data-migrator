@@ -19,11 +19,11 @@ final readonly class ArrayToPhp
     /**
      * @throws FileNotFoundException
      */
-    public function prepareStubBeforeSave(array $data): string
+    public function prepareStubBeforeSave(string $data): string
     {
         $stub = $this->getDataStub();
 
-        return $this->populateDataStub($stub, var_pretty_export($data, true));
+        return $this->populateDataStub($stub, $data);
     }
 
     /**

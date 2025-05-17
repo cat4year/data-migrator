@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Import;
 
+use Cat4year\DataMigrator\Entity\ExportModifyColumn;
+use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
 use Illuminate\Support\Collection as SupportCollection;
 
 final readonly class ImportDataPreparer
@@ -42,7 +44,7 @@ final readonly class ImportDataPreparer
      * Обрабатывает отдельный элемент согласно правилам модификации
      *
      * @param array $item Элемент для обработки
-     * @param array $modifiedAttributes Правила модификации атрибутов
+     * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes Правила модификации атрибутов
      * @param SupportCollection<int, SupportCollection> $existItemsByTable Существующие элементы
      * @param string $uniqueKeyName Имя уникального ключа
      * @return array Обработанный элемент
@@ -54,13 +56,13 @@ final readonly class ImportDataPreparer
         string $uniqueKeyName,
         array $needFixLater,
     ): array {
-        foreach ($modifiedAttributes as $attributeKeyName => $modifyAttributeData) {
-            if (! isset($modifyAttributeData['table'])) {
-                $morphType = $modifyAttributeData['morphType'];
+        foreach ($modifiedAttributes as $attributeKeyName => $modifyAttribute) {
+            if ($modifyAttribute instanceof ExportModifyMorphColumn) {
+                $morphType = $modifyAttribute->getMorphType();
                 $morphClass = $item[$morphType];
                 $modifyTable = app($morphClass)->getTable();
             } else {
-                $modifyTable = $modifyAttributeData['table'];
+                $modifyTable = $modifyAttribute->getSourceTableName();
             }
 
             $existRelationTableItems = $existItemsByTable->get($modifyTable);
@@ -73,7 +75,7 @@ final readonly class ImportDataPreparer
                 $item,
                 $existRelationTableItems,
                 $attributeKeyName,
-                $modifyAttributeData,
+                $modifyAttribute,
                 $needFixLater,
                 $uniqueKeyName
             );
@@ -88,14 +90,14 @@ final readonly class ImportDataPreparer
      * @param array $item Элемент для обработки
      * @param SupportCollection|null $existItems Существующие элементы
      * @param string $attributeKeyName Имя атрибута
-     * @param array $modifyAttributeData Правила модификации
+     * @param ExportModifyColumn $modifyAttribute Правила модификации
      * @return array Обработанный элемент или null если обработка пропущена
      */
     private function autoincrementRelationField(
         array $item,
         ?SupportCollection $existItems,
         string $attributeKeyName,
-        array $modifyAttributeData,
+        ExportModifyColumn $modifyAttribute,
         array $needFixLater,
         string $uniqueKeyName,
     ): array {
@@ -103,7 +105,7 @@ final readonly class ImportDataPreparer
             $item,
             $existItems,
             $attributeKeyName,
-            $modifyAttributeData
+            $modifyAttribute
         );
 
         $isModifiedItem = ! empty(array_diff_assoc($maybeModifiedItem, $item)) || ! empty(array_diff_assoc($item, $maybeModifiedItem));
@@ -113,8 +115,8 @@ final readonly class ImportDataPreparer
         }
 
         if (
-            $modifyAttributeData['nullable'] === true
-            && $attributeKeyName !== $uniqueKeyName
+            $attributeKeyName !== $uniqueKeyName
+            && $modifyAttribute->isNullable()
             && in_array($attributeKeyName, $needFixLater, true)
         ) {
             $item[$attributeKeyName] = null;
@@ -122,8 +124,7 @@ final readonly class ImportDataPreparer
             return $item;
         }
 
-        if (isset($modifyAttributeData['autoIncrement']) &&
-            $modifyAttributeData['autoIncrement'] === true) {
+        if ($modifyAttribute->isAutoincrement() === true) {
             unset($item[$attributeKeyName]);
         }
 
@@ -134,7 +135,7 @@ final readonly class ImportDataPreparer
         array $item,
         ?SupportCollection $existItems,
         string $attributeKeyName,
-        array $modifyAttributeData
+        ExportModifyColumn $modifyAttributeData
     ): array {
         if ($existItems === null || $existItems->isEmpty()) {
             return $item;
@@ -142,13 +143,13 @@ final readonly class ImportDataPreparer
 
         $keyValue = $item[$attributeKeyName];
 
-        if (isset($modifyAttributeData['oldKeyNames'])) {
-            $morphType = $modifyAttributeData['morphType'];
+        if ($modifyAttributeData instanceof ExportModifyMorphColumn) {
+            $morphType = $modifyAttributeData->getMorphType();
             $morphClass = $item[$morphType];
             $modifyTable = app($morphClass)->getTable(); // todo: оптимизировать получение таблицы по классу
-            $oldKeyName = $modifyAttributeData['oldKeyNames'][$modifyTable] ?? null;
+            $oldKeyName = $modifyAttributeData->getSourceOldKeyNames()[$modifyTable] ?? null;
         } else {
-            $oldKeyName = $modifyAttributeData['oldKeyName'];
+            $oldKeyName = $modifyAttributeData->getSourceKeyName();
         }
 
         if (! isset($oldKeyName)) {
@@ -200,6 +201,9 @@ final readonly class ImportDataPreparer
         return $oldUniqueKeyName;
     }
 
+    /**
+     * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
+     */
     private function identifyFixLaterRelationFields(
         array $modifiedAttributes,
         string $uniqueKeyName
@@ -207,7 +211,7 @@ final readonly class ImportDataPreparer
         $fixLaterFields = [];
 
         foreach ($modifiedAttributes as $attributeKeyName => $modifyAttributeData) {
-            if ($modifyAttributeData['nullable'] === true && $attributeKeyName !== $uniqueKeyName) {
+            if ($attributeKeyName !== $uniqueKeyName && $modifyAttributeData->isNullable()) {
                 $fixLaterFields[] = $attributeKeyName;
             }
         }
@@ -215,6 +219,13 @@ final readonly class ImportDataPreparer
         return $fixLaterFields;
     }
 
+    /**
+     * @param array $items
+     * @param list<string> $attributesForFixKeyName
+     * @param array<non-empty-string, ExportModifyColumn> $attributesMetaData
+     * @param SupportCollection $existItems
+     * @return array
+     */
     public function modifyItemsAttributes(
         array $items,
         array $attributesForFixKeyName,
@@ -224,14 +235,14 @@ final readonly class ImportDataPreparer
         $result = [];
         foreach ($items as $item) {
             foreach ($attributesForFixKeyName as $attributeForFixKeyName) {
-                $attributeModifyData = $attributesMetaData[$attributeForFixKeyName];
-                $existRelationTableItems = $existItems->get($attributeModifyData['table']);
+                $attributeModify = $attributesMetaData[$attributeForFixKeyName];
+                $existRelationTableItems = $existItems->get($attributeModify->getSourceTableName());
 
                 $item = $this->invertModifyAttribute(
                     $item,
                     $existRelationTableItems,
                     $attributeForFixKeyName,
-                    $attributeModifyData
+                    $attributeModify
                 );
             }
 

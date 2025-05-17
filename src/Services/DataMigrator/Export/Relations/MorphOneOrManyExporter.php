@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export\Relations;
 
+use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
+use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\ModelService;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Illuminate\Contracts\Container\BindingResolutionException;
@@ -52,6 +54,7 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
         $foreignKey = $this->relation->getForeignKeyName();
         $morphType = $this->relation->getMorphType();
         $morphTypeValue = $this->relation->getParent()::class;
+        dd($this->relation);
 
         return $this->relation->getRelated()::query()
             ->select()
@@ -81,9 +84,9 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
         $parent = $this->relation->getParent();
         $parentTable = $parent->getTable();
         $parentKeyName = $parent->getKeyName();
-        $uniqueKeyName = $this->modelService->identifyUniqueIdColumn($parent);
+        $uniqueParentKeyName = $this->modelService->identifyUniqueIdColumn($parent);
 
-        if ($uniqueKeyName === null) {
+        if ($uniqueParentKeyName === null) {
             // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
         }
 
@@ -97,48 +100,43 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
 
         $foreignKeyName = $this->relation->getForeignKeyName();
 
+        $parentTableColumn = new ExportModifySimpleColumn(
+            tableName: $parentTable,
+            keyName: $parentKeyName,
+            uniqueKeyName: $uniqueParentKeyName,
+            nullable: $this->tableRepository->isNullableColumn($parentTable, $parentKeyName),
+            autoincrement: $this->tableRepository->isAutoincrementColumn($parentTable, $parentKeyName),
+        );
+
+        $relatedTableForeignColumn = new ExportModifyMorphColumn(
+            morphType: $this->relation->getMorphType(),
+            tableName: $relatedTable,
+            keyName: $foreignKeyName,
+            sourceKeyNames: [$parentTable => $uniqueParentKeyName],
+            sourceOldKeyNames: [$parentTable => $parentKeyName],
+            nullable: $this->tableRepository->isNullableColumn($relatedTable, $foreignKeyName),
+            autoincrement: $this->tableRepository->isAutoincrementColumn($relatedTable, $foreignKeyName),
+        );
+
         $result = [
             $parentTable => [
-                $parentKeyName => [
-                    'table' => $parentTable,
-                    'oldKeyName' => $parentKeyName,
-                    'keyName' => $uniqueKeyName,
-                    'isPrimaryKey' => true,
-                    'autoIncrement' => $this->tableRepository->isAutoincrementColumn(
-                        $parentTable,
-                        $parentKeyName
-                    ),
-                    'nullable' => $this->tableRepository->isNullableColumn(
-                        $parentTable,
-                        $parentKeyName
-                    ),
-                ],
+                $parentTableColumn->getKeyName() => $parentTableColumn,
             ],
             $relatedTable => [
-                $foreignKeyName => [
-                    'morphType' => $this->relation->getMorphType(),
-                    'autoIncrement' => $this->tableRepository->isAutoincrementColumn($relatedTable, $foreignKeyName),
-                    'nullable' => $this->tableRepository->isNullableColumn(
-                        $relatedTable,
-                        $foreignKeyName
-                    ),
-                    'oldKeyNames' => [$parentTable => $parentKeyName],
-                    'keyNames' => [$parentTable => $uniqueKeyName],
-                ],
+                $relatedTableForeignColumn->getKeyName() => $relatedTableForeignColumn,
             ],
         ];
 
         $relatedIdKeyName = $related->getKeyName();
         $relatedUniqueIdKeyName = $this->modelService->identifyUniqueIdColumn($related);
         if ($relatedIdKeyName !== $foreignKeyName) {
-            $result[$relatedTable][$relatedIdKeyName] = [
-                'table' => $relatedTable,
-                'oldKeyName' => $relatedIdKeyName,
-                'keyName' => $relatedUniqueIdKeyName,
-                'isPrimaryKey' => true,
-                'autoIncrement' => $this->tableRepository->isAutoincrementColumn($relatedTable, $relatedIdKeyName),
-                'nullable' => $this->tableRepository->isNullableColumn($relatedTable, $relatedIdKeyName),
-            ];
+            $result[$relatedTable][$relatedIdKeyName] = new ExportModifySimpleColumn(
+                tableName: $relatedTable,
+                keyName: $relatedIdKeyName,
+                uniqueKeyName: $relatedUniqueIdKeyName,
+                nullable: $this->tableRepository->isNullableColumn($relatedTable, $relatedIdKeyName),
+                autoincrement: $this->tableRepository->isAutoincrementColumn($relatedTable, $relatedIdKeyName),
+            );
         }
 
         return $result;
