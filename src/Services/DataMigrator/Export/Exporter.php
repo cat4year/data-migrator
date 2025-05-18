@@ -23,6 +23,7 @@ final readonly class Exporter
         private RelationsExporter $relationManager,
         private ExportSorter $sorter,
         private TableService $tableRepository,
+        private ExportSyncIdAttacher $syncIdAttacher,
     ) {
     }
 
@@ -150,7 +151,10 @@ final readonly class Exporter
         ]);
 
         $result = $exportModifier->modify();
-        return $this->sorter->sort($result);
+
+        $resultWithUniqueColumns = $this->syncIdAttacher->attachSyncIds($result);
+
+        return $this->sorter->sort($resultWithUniqueColumns);
     }
 
     /**

@@ -10,6 +10,7 @@ use RuntimeException;
 final readonly class ModelService
 {
     public function __construct(
+        //todo: задуматься, о проблеме low cohesion
         private TableService $tableRepository,
     ) {
     }
@@ -31,10 +32,10 @@ final readonly class ModelService
     public function getUniqueColumnsForSync(Model $model): ?array
     {
         try {
-            $tableColumnMap = config('data-migrator.table_unique_column_map');
+            $tableColumnMap = config('data-migrator.table_sync_id');
             if (isset($tableColumnMap[$model->getTable()])) {
                 if (is_string($tableColumnMap[$model->getTable()])) {
-                    return [$tableColumnMap[$model->getTable()]];
+                    return [$tableColumnMap[$model->getTable()]];//не обязательно добавлять как массив
                 }
 
                 return $tableColumnMap[$model->getTable()];

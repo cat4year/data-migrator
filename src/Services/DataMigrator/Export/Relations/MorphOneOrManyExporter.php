@@ -54,7 +54,6 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
         $foreignKey = $this->relation->getForeignKeyName();
         $morphType = $this->relation->getMorphType();
         $morphTypeValue = $this->relation->getParent()::class;
-        dd($this->relation);
 
         return $this->relation->getRelated()::query()
             ->select()

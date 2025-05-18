@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Cat4year\DataMigratorTests\App\Models;
 
 use Cat4year\DataMigrator\Services\Configurations\SlugFirstConfiguration;
+use Illuminate\Database\Eloquent\Concerns\HasUniqueIds;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

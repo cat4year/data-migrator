@@ -43,7 +43,10 @@ final readonly class Importer
      */
     public function importData(array $data): void
     {
+
+
         $uniqueIdItemsValues = $this->getUniqueIdsByTable($data);
+        dd($uniqueIdItemsValues);
 //        if (empty($uniqueIdItemsValues)) {
 //            throw new RuntimeException('Нет уникальных id во всех таблицах');
 //        }
@@ -125,10 +128,9 @@ final readonly class Importer
     private function syncWithoutAutoincrementRelationFields(array $data, array $uniqueIdItemsValues): void
     {
         foreach ($data as $tableName => $tableData) {
-            //todo: тут в комментах бред какой-то. Почему не синхроним простые таблицы без автоинкремента если нет modifiedAttributes? modifiedAttributes и не должно быть
-//            if (!isset($tableData['modifiedAttributes']) || $this->hasRelationFields($tableData['modifiedAttributes'])) {
-//                continue;
-//            }
+            if (isset($tableData['modifiedAttributes']) && $this->hasRelationFields($tableData['modifiedAttributes'])) {
+                continue;
+            }
 
             $uniqueKeyName = $uniqueIdItemsValues[$tableName]['keyName'];
             //todo: нужно ли?

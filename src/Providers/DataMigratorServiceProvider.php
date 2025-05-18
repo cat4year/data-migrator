@@ -9,6 +9,7 @@ use Cat4year\DataMigrator\Console\Commands\PintFileCommand;
 use Cat4year\DataMigrator\Services\DataMigrator\MigratorCreator;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\MigrationDataSourceFormat;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\Php\PhpMigrationDataSourceFormat;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\SchemaState;
 use Illuminate\Support\ServiceProvider;
 
 final class DataMigratorServiceProvider extends ServiceProvider
@@ -28,6 +29,9 @@ final class DataMigratorServiceProvider extends ServiceProvider
         require_once(__DIR__.'/../../src/Helpers/app.php');
 
         $this->registerCreator();
+        $this->app->singleton(SchemaState::class, static function ($app) {
+            return new SchemaState();
+        });
     }
 
     public function boot(): void

@@ -104,7 +104,6 @@ final readonly class ExportModifier
 
         $result = [];
         $entities = $this->entitiesCollections->toArray();
-        dd($entities);
         foreach ($entities as $tableName => $entityInfo) {
             foreach ($entityInfo['items'] as $itemKey => $item) {
                 if (is_array($item)) {

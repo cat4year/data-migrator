@@ -7,6 +7,7 @@ namespace Cat4year\DataMigratorTests\Feature\Export\Relations;
 use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
 use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
+use Cat4year\DataMigrator\Entity\SyncId;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\ExportConfigurator;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Exporter;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationsExporter;
@@ -145,6 +146,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => true,
                             ]),
                         ],
+                        'syncId' => new SyncId(['slug'])
                     ],
                 ],
                 BelongsTo::class,
@@ -208,6 +210,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => true,
                             ]),
                         ],
+                        'syncId' => new SyncId(['slug'])
                     ],
                     'slug_threes' => [
                         'items' => [
@@ -246,6 +249,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => false,
                             ]),
                         ],
+                        'syncId' => new SyncId(['slug'])
                     ]
                 ],
                 BelongsTo::class,
@@ -300,6 +304,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => false,
                             ]),
                         ],
+                        'syncId' => new SyncId(['slug'])
                     ],
                     'slug_firsts' => [
                         'items' => [
@@ -354,6 +359,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => true,
                             ]),
                         ],
+                        'syncId' => new SyncId(['slug'])
                     ],
                 ],
                 BelongsTo::class,
@@ -408,6 +414,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => false,
                             ]),
                         ],
+                        'syncId' => new SyncId(['slug'])
                     ],
                     'slug_firsts' => [
                         'items' => [
@@ -462,6 +469,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => true,
                             ]),
                         ],
+                        'syncId' => new SyncId(['slug'])
                     ],
                     'slug_threes' => [
                         'items' => [
@@ -500,6 +508,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => false,
                             ]),
                         ],
+                        'syncId' => new SyncId(['slug'])
                     ]
                 ],
                 BelongsTo::class,
@@ -554,45 +563,47 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => false,
                             ]),
                         ],
+                        'syncId' => new SyncId(['slug'])
                     ],
                     'slug_seconds' => [
-        'items' => [
-            1 => [
-                'id' => 'autem-architecto-vel-quia-repudiandae',
-                'slug' => 'autem-architecto-vel-quia-repudiandae',
-                'created_at' => '2025-05-13 02:44:18',
-                'name' => 'Quibusdam velit aut suscipit ...uidem.',
-                'slug_first_id' => 3,
-            ],
-            2 => [
-                'id' => 'hic-sit-illum',
-                'slug' => 'hic-sit-illum',
-                'created_at' => '2025-05-13 02:44:18',
-                'name' => 'Quia ipsa quas ut dolor nostr...eaque.',
-                'slug_first_id' => 2
-            ],
-        ],
-        'modifiedAttributes' => [
-            'id' => new ExportModifySimpleColumn(...[
-                'tableName' => 'slug_seconds',
-                'keyName' => 'id',
-                'uniqueKeyName' => 'slug',
-                'nullable' => false,
-                'autoincrement' => true,
-                'isPrimaryKey' => true,
-            ]),
-            'slug_first_id' => new ExportModifyForeignColumn(...[
-                'tableName' => 'slug_seconds',
-                'keyName' => 'slug_first_id',
-                'foreignTableName' => 'slug_firsts',
-                'foreignUniqueKeyName' => 'slug',
-                'foreignOldKeyName' => 'id',
-                'nullable' => false,
-                'autoincrement' => false,
-                'isPrimaryKey' => false,
-            ]),
-        ],
-    ],
+                        'items' => [
+                            1 => [
+                                'id' => 'autem-architecto-vel-quia-repudiandae',
+                                'slug' => 'autem-architecto-vel-quia-repudiandae',
+                                'created_at' => '2025-05-13 02:44:18',
+                                'name' => 'Quibusdam velit aut suscipit ...uidem.',
+                                'slug_first_id' => 3,
+                            ],
+                            2 => [
+                                'id' => 'hic-sit-illum',
+                                'slug' => 'hic-sit-illum',
+                                'created_at' => '2025-05-13 02:44:18',
+                                'name' => 'Quia ipsa quas ut dolor nostr...eaque.',
+                                'slug_first_id' => 2
+                            ],
+                        ],
+                        'modifiedAttributes' => [
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_seconds',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => 'slug',
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
+                            'slug_first_id' => new ExportModifyForeignColumn(...[
+                                'tableName' => 'slug_seconds',
+                                'keyName' => 'slug_first_id',
+                                'foreignTableName' => 'slug_firsts',
+                                'foreignUniqueKeyName' => 'slug',
+                                'foreignOldKeyName' => 'id',
+                                'nullable' => false,
+                                'autoincrement' => false,
+                                'isPrimaryKey' => false,
+                            ]),
+                        ],
+                        'syncId' => new SyncId(['slug'])
+                    ],
                 ],
                 BelongsTo::class,
             ],
@@ -651,6 +662,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => true,
                             ]),
                         ],
+                        'syncId' => new SyncId(['slug'])
                     ],
                     'slug_fours' => [
                         'items' => [
@@ -690,7 +702,8 @@ final class ExporterExportDataTest extends BaseTestCase
                                 autoincrement: false,
                                 isPrimaryKey: false,
                             )
-                        ]
+                        ],
+                        'syncId' => new SyncId(['slug'])
                     ]
                 ],
                 MorphOne::class,

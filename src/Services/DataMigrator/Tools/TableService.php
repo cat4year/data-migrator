@@ -10,6 +10,16 @@ use Schema;
 
 final readonly class TableService
 {
+
+    public function __construct(
+        private SchemaState $schemaState
+    ) {}
+
+    public function schemaState(): SchemaState
+    {
+        return $this->schemaState;
+    }
+
     public function identifyModelByTable(string $table): ?Model
     {
         foreach (get_declared_classes() as $class) {
@@ -25,19 +35,20 @@ final readonly class TableService
     }
 
     /**
+     * @deprecated Пока используетсся но будет убран
      * todo: странный метод. перепроверить когда буду делать тесты
      */
     public function tryFindUniqueIdColumnByAutoIncrementKey(string $autoIncKey, string $table): string
     {
         $stableKey = $autoIncKey;
 
-        $indexes = Schema::getIndexes($table);
+        $indexes = $this->schemaState->indexes($table);
 
         foreach ($indexes as $index) {
             if (
                 $index['unique'] === true
                 && count($index['columns']) === 1
-                && ! in_array($autoIncKey, $index['columns'], true)
+                && !in_array($autoIncKey, $index['columns'], true)
             ) {
                 $stableKey = $index['columns'][0];
             }
@@ -50,9 +61,39 @@ final readonly class TableService
         return $stableKey;
     }
 
+    public function tryFindUniqueColumnsByIndex(string $table): string|array|null
+    {
+        $indexes = $this->schemaState->indexes($table);
+        $nonAutoIncrementColumns = $this->getNonAutoIncrementColumns($table);
+
+        foreach ($indexes as $index) {
+            if (
+                $index['unique'] === true
+                && empty(array_diff($index['columns'], $nonAutoIncrementColumns))
+            ) {
+                if (count($index['columns']) === 1) {
+                    return current($index['columns']);
+                }
+
+                return $index['columns'];
+            }
+        }
+
+        return null;
+    }
+
+    private function getNonAutoIncrementColumns(string $tableName): array
+    {
+        $columns = $this->schemaState->columns($tableName);
+        return array_map(
+            static fn($column) => $column['name'],
+            array_filter($columns, static fn($column) => !$column['auto_increment'])
+        );
+    }
+
     public function identifyPrimaryKeyNameByTable(string $table): ?string
     {
-        $indexes = Schema::getIndexes($table);
+        $indexes = $this->schemaState->indexes($table);
 
         foreach ($indexes as $index) {
             if (
@@ -69,7 +110,7 @@ final readonly class TableService
 
     public function isNullableColumn(string $tableName, string $columnName): bool
     {
-        $columns = Schema::getColumns($tableName); // todo: add in memory cache
+        $columns = $this->schemaState->columns($tableName);
         $columnNullableByName = array_column($columns, 'nullable', 'name');
 
         return $columnNullableByName[$columnName] === true;
@@ -77,14 +118,18 @@ final readonly class TableService
 
     public function isAutoincrementColumn(string $tableName, string $columnName): bool
     {
-        $columns = Schema::getColumns($tableName); // todo: add in memory cache
+        $columns = $this->schemaState->columns($tableName);
         $columnNullableByName = array_column($columns, 'auto_increment', 'name');
+
+        if (!isset($columnNullableByName[$columnName])) {
+            throw new RuntimeException(sprintf('Не обнаружена колонка %s в таблице %s', $columnName, $tableName));
+        }
 
         return $columnNullableByName[$columnName] === true;
     }
 
     public function isUniqueColumn(string $tableName, string $columnName): bool
     {
-        return Schema::hasIndex($tableName, [$columnName], 'unique');
+        return $this->schemaState->hasIndex($tableName, [$columnName], 'unique');
     }
 }
