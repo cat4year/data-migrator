@@ -275,6 +275,9 @@ final readonly class ImportDataPreparer
         return $result;
     }
 
+    /**
+     * @todo: Скорее всего надо будет заменить $primaryColumnKeyName на syncIdState::makeHash
+     */
     public function modifyAndSaveOnlyFixLaterFields(array $items, array $neededAttributes, string $primaryColumnKeyName): array
     {
         $result = [];

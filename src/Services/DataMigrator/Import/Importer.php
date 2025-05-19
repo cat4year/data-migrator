@@ -8,7 +8,6 @@ use Cat4year\DataMigrator\Entity\ExportModifyColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\CollectionMerger;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
-use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use DB;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection as SupportCollection;
@@ -50,23 +49,36 @@ final readonly class Importer
         $this->fixLaterNullableRelationFields($withRelationFields);
     }
 
-    /**
-     * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
-     * @todo: Скорее всего нужно добавлять в экспсорте хэш syncId + добавить это в ключи для items
-     * @todo: В морф таблице так-то primaryKey не будет в modifiedAttributes
-     */
-    private function getPrimaryKeyColumn(array $modifiedAttributes): ?ExportModifySimpleColumn
-    {
-        return collect($modifiedAttributes)
-            ->first(static fn(ExportModifyColumn $column) => $column instanceof ExportModifySimpleColumn && $column->isPrimaryKey());
-    }
-
     private function collectExistData(array $data): void
     {
         foreach ($data as $tableName => $tableData) {
             $items = $this->getExistsRequiredItemsFromDatabase($tableName, $tableData['syncId'], $tableData['items']);
             $this->existItemsByTable->put($tableName, collect($items));
         }
+    }
+
+    /**
+     * @param array<non-empty-string, ExportModifyColumn> $data
+     * @return array<array<non-empty-string, ExportModifyColumn>, array<non-empty-string, ExportModifyColumn>>
+     */
+    private function splitDataByRelationFields(array $data): array
+    {
+        return collect($data)->partition(function ($tableData) {
+            return isset($tableData['modifiedAttributes']) && $this->hasRelationFields($tableData['modifiedAttributes']);
+        })->toArray();
+    }
+
+    /**
+     * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
+     * @return bool
+     */
+    private function hasRelationFields(array $modifiedAttributes): bool
+    {
+        if (count($modifiedAttributes) > 1) {
+            return true;
+        }
+
+        return count($modifiedAttributes) === 1 && !current($modifiedAttributes)->isPrimaryKey();
     }
 
     /**
@@ -83,19 +95,6 @@ final readonly class Importer
 //            );
             $this->syncWithDatabase($tableName, $syncId, $tableData);
         }
-    }
-
-    /**
-     * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
-     * @return bool
-     */
-    private function hasRelationFields(array $modifiedAttributes): bool
-    {
-        if (count($modifiedAttributes) > 1) {
-            return true;
-        }
-
-        return count($modifiedAttributes) === 1 && !current($modifiedAttributes)->isPrimaryKey();
     }
 
     /**
@@ -153,6 +152,15 @@ final readonly class Importer
         $this->collectionMerger->putWithMerge($this->existItemsByTable, $tableName, $latestExistItemsByTable);
     }
 
+    private function withConditionsBySyncIdForUpdateItem(Builder $query, array $keys, array $values): Builder
+    {
+        foreach ($keys as $key) {
+            $query->whereIn($key, array_column($values, $key));
+        }
+
+        return $query;
+    }
+
     private function getExistsRequiredItemsFromDatabase(string $tableName, array $syncId, array $values): array
     {
         $query = DB::table($tableName);
@@ -162,6 +170,18 @@ final readonly class Importer
         $keyBySyncId = SyncIdState::makeHashSyncId($syncId);
 
         return $queryBySyncId->get()->map(static fn(stdClass $item) => (array)$item)->keyBy($keyBySyncId)->toArray();
+    }
+
+    /**
+     * @todo: не совсем корректное условия, могут выбраться не с конкретным набором 3х колонок, а каждая из колонок случайно попала в значения разных наборов.
+     */
+    private function withConditionsBySyncIdForGetExistItems(Builder $query, array $keys, array $values): Builder
+    {
+        foreach ($keys as $key) {
+            $query->whereIn($key, array_column($values, $key));
+        }
+
+        return $query;
     }
 
     private function fixLaterNullableRelationFields(array $data): void
@@ -177,7 +197,7 @@ final readonly class Importer
             $primaryColumn = $this->getPrimaryKeyColumn($tableData['modifiedAttributes']);//todo: это не надо
             $primaryColumnKeyName = $primaryColumn?->getKeyName();
             $attributesForFixKeyName = $this->fixColumnsLater->get($tableName);
-            //todo: это нужно ли?
+            //todo: это нужно ли? скорее всего будет меняться на syncIdState::makeHash
             if ($primaryColumnKeyName !== null && !in_array($primaryColumnKeyName, $attributesForFixKeyName, true)) {
                 $attributesForFixKeyName[] = $primaryColumnKeyName;
             }
@@ -205,35 +225,13 @@ final readonly class Importer
     }
 
     /**
-     * @todo: не совсем корректное условия, могут выбраться не с конкретным набором 3х колонок, а каждая из колонок случайно попала в значения разных наборов.
+     * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
+     * @todo: Скорее всего нужно добавлять в экспсорте хэш syncId + добавить это в ключи для items
+     * @todo: В морф таблице так-то primaryKey не будет в modifiedAttributes
      */
-    private function withConditionsBySyncIdForGetExistItems(Builder $query, array $keys, array $values): Builder
+    private function getPrimaryKeyColumn(array $modifiedAttributes): ?ExportModifySimpleColumn
     {
-        foreach ($keys as $key) {
-            $query->whereIn($key, array_column($values, $key));
-        }
-
-        return $query;
-    }
-
-    private function withConditionsBySyncIdForUpdateItem(Builder $query, array $keys, array $values): Builder
-    {
-        foreach ($keys as $key) {
-            $query->whereIn($key, array_column($values, $key));
-        }
-
-        return $query;
-    }
-
-
-    /**
-     * @param array<non-empty-string, ExportModifyColumn> $data
-     * @return array<array<non-empty-string, ExportModifyColumn>, array<non-empty-string, ExportModifyColumn>>
-     */
-    private function splitDataByRelationFields(array $data): array
-    {
-        return collect($data)->partition(function ($tableData) {
-            return isset($tableData['modifiedAttributes']) && $this->hasRelationFields($tableData['modifiedAttributes']);
-        })->toArray();
+        return collect($modifiedAttributes)
+            ->first(static fn(ExportModifyColumn $column) => $column instanceof ExportModifySimpleColumn && $column->isPrimaryKey());
     }
 }
