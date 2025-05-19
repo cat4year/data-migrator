@@ -18,6 +18,20 @@ final class SyncIdState
      */
     private array $syncIds = [];
 
+    public static function makeHashSyncId(array|string $keys): string
+    {
+        if (is_string($keys)) {
+            return $keys;
+        }
+
+        if (count($keys) === 1) {
+            return current($keys);
+        }
+
+        sort($keys);
+        return md5(json_encode($keys, JSON_THROW_ON_ERROR));
+    }
+
     /**
      * @todo Добавить проверок корректности + логирование или ошибки для разработчика по моделям
      * В идеале если не unique отдавать ошибку
@@ -32,6 +46,22 @@ final class SyncIdState
         }
 
         return $this->syncIds[$table];
+    }
+
+    private function makeSyncId(string $tableName): SyncId
+    {
+        $potentialSyncIds = $this->potentialSyncIds($tableName);
+        if($tableName === 'slug_secondables'){
+            echo 'hello';
+            // dd($potentialSyncIds);
+        }
+
+        $potentialSyncId = $this->firstUniquePotentialSyncIds($potentialSyncIds, $tableName);
+        if (!is_array($potentialSyncId)) {
+            $potentialSyncId = [$potentialSyncId];
+        }
+
+        return new SyncId($potentialSyncId);
     }
 
     private function potentialSyncIds(string $table): array
@@ -62,62 +92,6 @@ final class SyncIdState
         }
 
         return $this->potentialSyncIds[$tableName];
-    }
-
-    public static function makeHashSyncId(array|string $keys): string
-    {
-        if (is_string($keys)) {
-            return $keys;
-        }
-
-        if (count($keys) === 1) {
-            return current($keys);
-        }
-
-        sort($keys);
-        return md5(json_encode($keys, JSON_THROW_ON_ERROR));
-    }
-
-    private function makeSyncId(string $tableName): SyncId
-    {
-        $potentialSyncIds = $this->potentialSyncIds($tableName);
-        if($tableName === 'slug_secondables'){
-            echo 'hello';
-           // dd($potentialSyncIds);
-        }
-
-        $potentialSyncId = $this->firstUniquePotentialSyncIds($potentialSyncIds, $tableName);
-        if (!is_array($potentialSyncId)) {
-            $potentialSyncId = [$potentialSyncId];
-        }
-
-        return new SyncId($potentialSyncId);
-    }
-
-    /**
-     * @param  list<string|list<string>> $potentialSyncIds
-     * @return string|list<string>
-     */
-    private function firstUniquePotentialSyncIds(array $potentialSyncIds, string $tableName): string|array
-    {
-        foreach ($potentialSyncIds as $potentialSyncId) {
-            if (is_array($potentialSyncId)) {
-                $isGoodPotentialSyncId = $this->isGoodPotentialCompoundSyncId($potentialSyncId, $tableName);
-            } else {
-                $isGoodPotentialSyncId = $this->isGoodPotentialStringSyncId($potentialSyncId, $tableName);
-            }
-
-            if ($isGoodPotentialSyncId === true) {
-                return $potentialSyncId;
-            }
-        }
-
-        throw new RuntimeException(sprintf('Ни один ключ синхронизации таблицы %s не подходит', $tableName));
-    }
-
-    private function hasPotentialSyncId(string $tableName, string $value): bool
-    {
-        return !empty($value) && in_array($value, $this->potentialSyncIds[$tableName] ?? [], true);
     }
 
     private function makePotentialSyncId(string $tableName): array|string|null
@@ -173,6 +147,32 @@ final class SyncIdState
         }
 
         return null;
+    }
+
+    private function hasPotentialSyncId(string $tableName, string $value): bool
+    {
+        return !empty($value) && in_array($value, $this->potentialSyncIds[$tableName] ?? [], true);
+    }
+
+    /**
+     * @param  list<string|list<string>> $potentialSyncIds
+     * @return string|list<string>
+     */
+    private function firstUniquePotentialSyncIds(array $potentialSyncIds, string $tableName): string|array
+    {
+        foreach ($potentialSyncIds as $potentialSyncId) {
+            if (is_array($potentialSyncId)) {
+                $isGoodPotentialSyncId = $this->isGoodPotentialCompoundSyncId($potentialSyncId, $tableName);
+            } else {
+                $isGoodPotentialSyncId = $this->isGoodPotentialStringSyncId($potentialSyncId, $tableName);
+            }
+
+            if ($isGoodPotentialSyncId === true) {
+                return $potentialSyncId;
+            }
+        }
+
+        throw new RuntimeException(sprintf('Ни один ключ синхронизации таблицы %s не подходит', $tableName));
     }
 
     private function isGoodPotentialCompoundSyncId(array $compoundPotentialSyncId, string $tableName): bool
