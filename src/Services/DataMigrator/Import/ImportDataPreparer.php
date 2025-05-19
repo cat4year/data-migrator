@@ -6,6 +6,7 @@ namespace Cat4year\DataMigrator\Services\DataMigrator\Import;
 
 use Cat4year\DataMigrator\Entity\ExportModifyColumn;
 use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
+use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Illuminate\Support\Collection as SupportCollection;
 
 final readonly class ImportDataPreparer
@@ -18,13 +19,13 @@ final readonly class ImportDataPreparer
     public function itemsWithAutoincrementRelationFields(
         array $tableData,
         SupportCollection $existItemsByTable,
-        string $uniqueKeyName
+        array $syncId
     ): array {
         $resultItems = [];
 
         $needFixLater = $this->identifyFixLaterRelationFields(
             $tableData['modifiedAttributes'],
-            $uniqueKeyName
+            $syncId
         );
 
         foreach ($tableData['items'] as $item) {
@@ -32,7 +33,7 @@ final readonly class ImportDataPreparer
                 $item,
                 $tableData['modifiedAttributes'],
                 $existItemsByTable,
-                $uniqueKeyName,
+                $syncId,
                 $needFixLater
             );
         }
@@ -53,7 +54,7 @@ final readonly class ImportDataPreparer
         array $item,
         array $modifiedAttributes,
         SupportCollection $existItemsByTable,
-        string $uniqueKeyName,
+        array $syncId,
         array $needFixLater,
     ): array {
         foreach ($modifiedAttributes as $attributeKeyName => $modifyAttribute) {
@@ -77,7 +78,7 @@ final readonly class ImportDataPreparer
                 $attributeKeyName,
                 $modifyAttribute,
                 $needFixLater,
-                $uniqueKeyName
+                $syncId
             );
         }
 
@@ -99,7 +100,7 @@ final readonly class ImportDataPreparer
         string $attributeKeyName,
         ExportModifyColumn $modifyAttribute,
         array $needFixLater,
-        string $uniqueKeyName,
+        array $syncId,
     ): array {
         $maybeModifiedItem = $this->invertModifyAttribute(
             $item,
@@ -115,7 +116,7 @@ final readonly class ImportDataPreparer
         }
 
         if (
-            $attributeKeyName !== $uniqueKeyName
+            !in_array($attributeKeyName, $syncId, true)
             && $modifyAttribute->isNullable()
             && in_array($attributeKeyName, $needFixLater, true)
         ) {
@@ -166,12 +167,12 @@ final readonly class ImportDataPreparer
         return $item;
     }
 
-    public function beforeSyncWithDatabase(array $items, array $tableMetaData): array
+    public function newBeforeSyncWithDatabase(array $items, array $modifiedAttributes): array
     {
-        $oldUniqueKeyName = $this->getOldUniqueKeyName($tableMetaData);
+        $primaryKey = $this->getPrimaryKeyForUnsetBeforeSync($modifiedAttributes);
 
-        if ($oldUniqueKeyName !== null) {
-            return $this->removeOldPrimaryKeyBeforeSave($oldUniqueKeyName, $items);
+        if ($primaryKey !== null) {
+            return $this->removeOldPrimaryKeyBeforeSave($primaryKey, $items);
         }
 
         return $items;
@@ -189,16 +190,38 @@ final readonly class ImportDataPreparer
         return $items;
     }
 
-    private function getOldUniqueKeyName(array $tableMetaData): ?string
+    /**
+     * @todo: В морф таблице так-то primaryKey не будет в modifiedAttributes
+     * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
+     * @return string|null
+     */
+    private function getPrimaryKeyForUnsetBeforeSync(array $modifiedAttributes): ?string
     {
-        $uniqueKeyName = $tableMetaData['keyName'];
-        $oldUniqueKeyName = $tableMetaData['oldKeyName'] ?? null;
+        $primaryKeyColumn = $this->getPrimaryKeyColumn($modifiedAttributes);
 
-        if ($oldUniqueKeyName !== null && $oldUniqueKeyName === $uniqueKeyName) {
-            $oldUniqueKeyName = null;
+        if ($primaryKeyColumn === null) {
+            //todo: добавить поиск primaryKey, которого не было в modifiedAttributes?
+            return null;
         }
 
-        return $oldUniqueKeyName;
+        $sourceUniqueKeyName = $primaryKeyColumn->getSourceUniqueKeyName();
+        $sourceKeyName = $primaryKeyColumn->getSourceKeyName();
+
+        if ($sourceUniqueKeyName !== null && $sourceUniqueKeyName === $sourceKeyName) {
+            $sourceKeyName = null;
+        }
+
+        return $sourceKeyName;
+    }
+
+    /**
+     * @todo: В морф таблице так-то primaryKey не будет в modifiedAttributes
+     * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
+     */
+    private function getPrimaryKeyColumn(array $modifiedAttributes): ?ExportModifySimpleColumn
+    {
+        return collect($modifiedAttributes)
+            ->first(static fn(ExportModifyColumn $column) => $column instanceof ExportModifySimpleColumn && $column->isPrimaryKey());
     }
 
     /**
@@ -206,12 +229,12 @@ final readonly class ImportDataPreparer
      */
     private function identifyFixLaterRelationFields(
         array $modifiedAttributes,
-        string $uniqueKeyName
+        array $syncId
     ): array {
         $fixLaterFields = [];
 
         foreach ($modifiedAttributes as $attributeKeyName => $modifyAttributeData) {
-            if ($attributeKeyName !== $uniqueKeyName && $modifyAttributeData->isNullable()) {
+            if (!in_array($attributeKeyName, $syncId, true) && $modifyAttributeData->isNullable()) {
                 $fixLaterFields[] = $attributeKeyName;
             }
         }
@@ -252,7 +275,7 @@ final readonly class ImportDataPreparer
         return $result;
     }
 
-    public function modifyAndSaveOnlyRelationFields(array $items, array $neededAttributes, string $uniqueIdAttribute): array
+    public function modifyAndSaveOnlyFixLaterFields(array $items, array $neededAttributes, string $primaryColumnKeyName): array
     {
         $result = [];
         foreach ($items as $item) {
@@ -266,7 +289,7 @@ final readonly class ImportDataPreparer
                 $newItem[$attribute] = $item[$attribute];
             }
 
-            $uniqueIdAttributeValue = $item[$uniqueIdAttribute];
+            $uniqueIdAttributeValue = $item[$primaryColumnKeyName];
             $result[$uniqueIdAttributeValue] = $newItem;
         }
 

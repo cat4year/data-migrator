@@ -15,6 +15,6 @@ final class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(SlugModelsSeeder::class);
-        // $this->call(SlugModelsSeeder::class);
+        $this->call(AdaptSlugModelsForImport::class);
     }
 }

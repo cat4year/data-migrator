@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Cat4year\DataMigrator\Services\DataMigrator\Import;
 
 use Cat4year\DataMigrator\Entity\ExportModifyColumn;
+use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\CollectionMerger;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\MigrationDataSourceFormat;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Cat4year\DataMigratorTests\App\Models\SlugFirst;
 use DB;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -28,23 +31,38 @@ final readonly class Importer
         private TableService $tableService,
         private ImportDataPreparer $preparer,
         private SupportCollection $existItemsByTable,
+        private SupportCollection $fixColumnsLater,
         private CollectionMerger $collectionMerger,
-    ) {
+    )
+    {
     }
 
     public function import(ImportData $importData): void
     {
         $data = $importData->get();
-        $this->importData($data);
+        $this->newImportData($data);
     }
 
     /**
      * todo: Нужно будет разбить на чанки по N элементов (из конфигурации)
      */
+    public function newImportData(array $data): void
+    {
+        $this->collectExistData($data);
+
+        [$withRelationFields, $withoutRelationFields] = $this->splitDataByRelationFields($data);
+
+        $this->newSyncWithoutAutoincrementRelationFields($withoutRelationFields);
+        $this->newSyncWithAutoincrementRelationFields($withRelationFields);
+        $this->newFixLaterNullableRelationFields($withRelationFields);
+    }
+
+    /**
+     * @deprecated
+     * todo: Нужно будет разбить на чанки по N элементов (из конфигурации)
+     */
     public function importData(array $data): void
     {
-
-
         $uniqueIdItemsValues = $this->getUniqueIdsByTable($data);
         dd($uniqueIdItemsValues);
 //        if (empty($uniqueIdItemsValues)) {
@@ -67,7 +85,7 @@ final readonly class Importer
             //todo: нужно будет поменять под историю с комплексным ключом для синхронизации
 
             //todo: по-идее просто убираем unqueIdAttribute и меняем на getSourceKeyName?
-            $uniqueIdAttribute = $this->identifyUniqueAttribute($tableData['modifiedAttributes']);
+            $uniqueIdAttribute = $this->getPrimaryKeyColumn($tableData['modifiedAttributes']);
             $result[$tableName]['items'] = array_column($tableData['items'], $uniqueIdAttribute);
             $currentModifyInfo = $tableData['modifiedAttributes'][$uniqueIdAttribute];
             assert($currentModifyInfo instanceof ExportModifyColumn);
@@ -89,16 +107,13 @@ final readonly class Importer
 
     /**
      * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
+     * @todo: Скорее всего нужно добавлять в экспсорте хэш syncId + добавить это в ключи для items
+     * @todo: В морф таблице так-то primaryKey не будет в modifiedAttributes
      */
-    private function identifyUniqueAttribute(array $modifiedAttributes): string
+    private function getPrimaryKeyColumn(array $modifiedAttributes): ?ExportModifySimpleColumn
     {
-        foreach ($modifiedAttributes as $attributeKey => $modifyInfo) {
-            if ($modifyInfo->isPrimarykey()) {
-                return $attributeKey;
-            }
-        }
-
-        throw new RuntimeException('Не смогли определить уникальный id для таблицы ');
+        return collect($modifiedAttributes)
+            ->first(static fn(ExportModifyColumn $column) => $column instanceof ExportModifySimpleColumn && $column->isPrimaryKey());
     }
 
     private function collectExistDataByTable(array $data, array $uniqueIdItemsValues): void
@@ -119,6 +134,19 @@ final readonly class Importer
 
             $latestExistItemsByTable = collect($this->getExistItemsFromTable($tableForPrimaryKey, $keyName, $values));
             $this->collectionMerger->putWithMerge($this->existItemsByTable, $tableName, $latestExistItemsByTable);
+        }
+    }
+
+    private function newSyncWithoutAutoincrementRelationFields(array $withoutAutoincrementData): void
+    {
+        foreach ($withoutAutoincrementData as $tableName => $tableData) {
+            $syncId = $tableData['syncId'];
+            //todo: нужно ли? Проверить
+//            $itemsForSync = $this->preparer->newBeforeSyncWithDatabase(
+//                $tableData['items'],
+//                $syncId
+//            );
+            $this->newSyncWithDatabase($tableName, $syncId, $tableData);
         }
     }
 
@@ -169,7 +197,9 @@ final readonly class Importer
             }
 
             $uniqueKeyName = $uniqueIdItemsValues[$tableName]['keyName'];
-            $preparedFieldsData = $this->preparer->itemsWithAutoincrementRelationFields($tableData, $this->existItemsByTable, $uniqueKeyName);
+            $preparedFieldsData = $this->preparer->itemsWithAutoincrementRelationFields($tableData,
+                $this->existItemsByTable,
+                $uniqueKeyName);
             $preparedItems = $preparedFieldsData['items'];
             $needFixLater[$tableName] = $preparedFieldsData['needFixLater'];
 
@@ -180,13 +210,47 @@ final readonly class Importer
         $this->fixLaterNullableRelationFields($data, $needFixLater);
     }
 
+    private function newSyncWithDatabase(
+        string $tableName,
+        array $syncId,
+        array $itemsData,
+    ): void
+    {
+        //пока реализовываем вариант где syncId всегда присутствует и он уникальный - updateOrInsert
+        //todo: реализовать проверку на уникальность при экспорте в отдельное поле добавлять
+        //todo: если будем поддерживать отсутствие syncId - то upsert
+        try {
+            foreach ($itemsData as $item) {
+                $query = DB::table($tableName);
+                $queryBySyncId = $this->withConditionsBySyncIdForUpdateItem($query, $syncId, $item);
+                $queryBySyncId->updateOrInsert($item);
+            }
+        } catch (Throwable $e) {
+            Log::error('Ошибка при обновлении', [
+                $tableName,
+                $itemsData,
+                $item,
+                $syncId,
+                $e->getMessage(),
+            ]);
+        }
+
+        $items = $this->getExistsRequiredItemsFromDatabase($tableName, $syncId, $itemsData);
+        $latestExistItemsByTable = collect($items);
+        $this->collectionMerger->putWithMerge($this->existItemsByTable, $tableName, $latestExistItemsByTable);
+    }
+
+    /**
+     * @deprecated
+     */
     private function syncWithDatabase(
         string $tableName,
         string $uniqueKeyName,
         array $itemsData,
-    ): void {
+    ): void
+    {
         $isUniqueColumn = $this->tableService->isUniqueColumn($tableName, $uniqueKeyName);
-        if (! $isUniqueColumn) {
+        if (!$isUniqueColumn) {
             try {
                 foreach ($itemsData as $item) {
                     DB::table($tableName)->where($uniqueKeyName, $item[$uniqueKeyName])->updateOrInsert($item);
@@ -214,19 +278,59 @@ final readonly class Importer
     {
         return DB::table($tableName)->whereIn($keyName, $values)->get()
             ->keyBy($keyName)
-            ->map(static fn (stdClass $item) => (array) $item)->toArray();
+            ->map(static fn(stdClass $item) => (array)$item)->toArray();
+    }
+
+    private function newFixLaterNullableRelationFields(array $data): void
+    {
+        foreach ($data as $tableName => $tableData) {
+            if (!$this->fixColumnsLater->has($tableName)) {
+                continue;
+            }
+
+            //удаляем все колонки кроме тех что в syncId и fixColumnsLater
+            //меняем значения fixColumnsLater на значения конечной системы
+            //обновляем fixColumnsLater значения, по syncId условию
+            $primaryColumn = $this->getPrimaryKeyColumn($tableData['modifiedAttributes']);//todo: это не надо
+            $primaryColumnKeyName = $primaryColumn?->getKeyName();
+            $attributesForFixKeyName = $this->fixColumnsLater->get($tableName);
+            //todo: это нужно ли?
+            if ($primaryColumnKeyName !== null && !in_array($primaryColumnKeyName, $attributesForFixKeyName, true)) {
+                $attributesForFixKeyName[] = $primaryColumnKeyName;
+            }
+
+            $modifiedItems = $this->preparer->modifyItemsAttributes(
+                $tableData['items'],
+                $attributesForFixKeyName,
+                $tableData['modifiedAttributes'],
+                $this->existItemsByTable
+            );
+
+            $modifiedItemsOnlyFixLaterFields = $this->preparer->modifyAndSaveOnlyFixLaterFields(
+                $modifiedItems,
+                $attributesForFixKeyName,
+                $primaryColumnKeyName
+            );
+
+            $syncId = $tableData['syncId'];
+            foreach ($modifiedItemsOnlyFixLaterFields as $itemLaterAndSyncFields) {
+                $query = DB::table($tableName);
+                $queryBySyncId = $this->withConditionsBySyncIdForUpdateItem($query, $syncId, $itemLaterAndSyncFields);
+                $queryBySyncId->update($itemLaterAndSyncFields);
+            }
+        }
     }
 
     private function fixLaterNullableRelationFields(array $data, array $fieldsForFix): void
     {
         foreach ($data as $tableName => $tableData) {
-            if (! array_key_exists($tableName, $fieldsForFix)) {
+            if (!array_key_exists($tableName, $fieldsForFix)) {
                 continue;
             }
 
-            $uniqueIdAttribute = $this->identifyUniqueAttribute($tableData['modifiedAttributes']);
+            $uniqueIdAttribute = $this->getPrimaryKeyColumn($tableData['modifiedAttributes']);
             $attributesForFixKeyName = $fieldsForFix[$tableName];
-            if (! in_array($uniqueIdAttribute, $attributesForFixKeyName, true)) {
+            if (!in_array($uniqueIdAttribute, $attributesForFixKeyName, true)) {
                 $attributesForFixKeyName[] = $uniqueIdAttribute;
             }
 
@@ -237,7 +341,7 @@ final readonly class Importer
                 $this->existItemsByTable
             );
 
-            $itemsFieldsOnlyForUpdate = $this->preparer->modifyAndSaveOnlyRelationFields(
+            $itemsFieldsOnlyForUpdate = $this->preparer->modifyAndSaveOnlyFixLaterFields(
                 $items,
                 $attributesForFixKeyName,
                 $uniqueIdAttribute
@@ -248,6 +352,79 @@ final readonly class Importer
                     ->where($uniqueIdAttribute, $itemForUpdate[$uniqueIdAttribute])
                     ->update($itemForUpdate);
             }
+        }
+    }
+
+    private function collectExistData(array $data): void
+    {
+        foreach ($data as $tableName => $tableData) {
+            $items = $this->getExistsRequiredItemsFromDatabase($tableName, $tableData['syncId'], $tableData['items']);
+            $this->existItemsByTable->put($tableName, collect($items));
+        }
+    }
+
+    private function getExistsRequiredItemsFromDatabase(string $tableName, array $syncId, array $values): array
+    {
+        $query = DB::table($tableName);
+
+        $queryBySyncId = $this->withConditionsBySyncIdForGetExistItems($query, $syncId, $values);
+
+        $keyBySyncId = SyncIdState::makeHashSyncId($syncId);
+
+        return $queryBySyncId->get()->map(static fn(stdClass $item) => (array)$item)->keyBy($keyBySyncId)->toArray();
+    }
+
+    /**
+     * @todo: не совсем корректное условия, могут выбраться не с конкретным набором 3х колонок, а каждая из колонок случайно попала в значения разных наборов.
+     */
+    private function withConditionsBySyncIdForGetExistItems(Builder $query, array $keys, array $values): Builder
+    {
+        foreach ($keys as $key) {
+            $query->whereIn($key, array_column($values, $key));
+        }
+
+        return $query;
+    }
+
+    private function withConditionsBySyncIdForUpdateItem(Builder $query, array $keys, array $values): Builder
+    {
+        foreach ($keys as $key) {
+            $query->whereIn($key, array_column($values, $key));
+        }
+
+        return $query;
+    }
+
+
+    /**
+     * @param array<non-empty-string, ExportModifyColumn> $data
+     * @return array<array<non-empty-string, ExportModifyColumn>, array<non-empty-string, ExportModifyColumn>>
+     */
+    private function splitDataByRelationFields(array $data): array
+    {
+        return collect($data)->partition(function ($tableData) {
+            return isset($tableData['modifiedAttributes']) && $this->hasRelationFields($tableData['modifiedAttributes']);
+        })->toArray();
+    }
+
+    private function newSyncWithAutoincrementRelationFields(array $withRelationFields)
+    {
+        foreach ($withRelationFields as $tableName => $tableData) {
+            $syncId = $tableData['syncId'];
+
+            $preparedFieldsData = $this->preparer->itemsWithAutoincrementRelationFields(
+                $tableData,
+                $this->existItemsByTable,
+                $syncId
+            );
+            $preparedItems = $preparedFieldsData['items'];
+            $this->fixColumnsLater->put($tableName, $preparedFieldsData['needFixLater']);
+
+            $itemsForSync = $this->preparer->newBeforeSyncWithDatabase(
+                $preparedItems,
+                $tableData['modifiedAttributes'],
+            );
+            $this->newSyncWithDatabase($tableName, $syncId, $itemsForSync);
         }
     }
 }

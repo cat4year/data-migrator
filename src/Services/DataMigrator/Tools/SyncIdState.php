@@ -64,10 +64,14 @@ final class SyncIdState
         return $this->potentialSyncIds[$tableName];
     }
 
-    private function makeHashSyncId(array|string $keys): string
+    public static function makeHashSyncId(array|string $keys): string
     {
         if (is_string($keys)) {
             return $keys;
+        }
+
+        if (count($keys) === 1) {
+            return current($keys);
         }
 
         sort($keys);
@@ -121,7 +125,7 @@ final class SyncIdState
         $syncIdByTables = config('data-migrator.table_sync_id', []);
         if (
             isset($syncIdByTables[$tableName])
-            && !$this->hasPotentialSyncId($tableName, $this->makeHashSyncId($syncIdByTables[$tableName]))
+            && !$this->hasPotentialSyncId($tableName, self::makeHashSyncId($syncIdByTables[$tableName]))
         ) {
             return $syncIdByTables[$tableName];//нет гарантии, что не будет дублей с этим ключом/ключами
         }
@@ -162,7 +166,7 @@ final class SyncIdState
             }
 
             $foundPotentialColumn = $this->tableService->tryFindUniqueColumnsByIndex($tableName);
-            if (!$this->hasPotentialSyncId($tableName, $this->makeHashSyncId($foundPotentialColumn))) {
+            if (!$this->hasPotentialSyncId($tableName, self::makeHashSyncId($foundPotentialColumn))) {
                 return $foundPotentialColumn;
             }
         } catch (RuntimeException) {

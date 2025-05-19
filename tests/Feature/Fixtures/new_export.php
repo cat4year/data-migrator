@@ -56,6 +56,7 @@ return [
                 'isPrimaryKey' => true,
             ],
         ],
+        'syncId' => ['slug']
     ],
     'slug_threes' => [
         'items' => [
@@ -94,6 +95,7 @@ return [
                 'isPrimaryKey' => false,
             ],
         ],
+        'syncId' => ['slug']
     ],
     'slug_seconds' => [
         'items' => [
@@ -139,5 +141,6 @@ return [
                 'isPrimaryKey' => false,
             ],
         ],
+        'syncId' => ['slug']
     ],
 ];
