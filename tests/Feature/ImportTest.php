@@ -39,9 +39,7 @@ final class ImportTest extends BaseTestCase
         $fullPath = __DIR__.'/Fixtures/new_export.php';
 
         $importData = ImportData::createFromFile($fullPath);
-        //$importer->import($importData);
-        $this->seed(DatabaseSeeder::class);//todo: remove it
-       // SlugFirst::get()->dd();
+        $importer->import($importData);
         $importer->import($importData);
 
         $this->assertDatabaseCount('slug_firsts', 3);
