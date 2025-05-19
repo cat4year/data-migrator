@@ -167,7 +167,7 @@ final readonly class ImportDataPreparer
         return $item;
     }
 
-    public function newBeforeSyncWithDatabase(array $items, array $modifiedAttributes): array
+    public function beforeSyncWithDatabase(array $items, array $modifiedAttributes): array
     {
         $primaryKey = $this->getPrimaryKeyForUnsetBeforeSync($modifiedAttributes);
 
