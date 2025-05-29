@@ -18,6 +18,7 @@ final class ExportTest extends BaseTestCase
 {
     use DatabaseMigrations;
 
+    #[\Override]
     protected function setUp(): void
     {
         parent::setUp();
@@ -71,6 +72,7 @@ final class ExportTest extends BaseTestCase
         $this->assertTrue($disk->exists($configurator->makeSourceBaseName()));
     }
 
+    #[\Override]
     protected function tearDown(): void
     {
         Storage::fake('public');

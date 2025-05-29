@@ -47,6 +47,7 @@ final class MigratorCreator extends MigrationCreator
         return $this->files->get($stub);
     }
 
+    #[\Override]
     public function stubPath(): string
     {
         return __DIR__.'/../../../stubs';

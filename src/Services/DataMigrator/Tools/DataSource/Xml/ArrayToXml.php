@@ -14,13 +14,9 @@ use function key;
 
 final class ArrayToXml
 {
-    private DOMDocument $document;
+    private readonly DOMDocument $document;
 
-    private DOMElement $rootNode;
-
-    private bool $replaceSpacesByUnderScoresInKeyNames = true;
-
-    private bool $addXmlDeclaration = true;
+    private readonly DOMElement $rootNode;
 
     private string $numericTagNamePrefix = 'numeric_';
 
@@ -32,12 +28,12 @@ final class ArrayToXml
     public function __construct(
         array $array,
         string|array $rootElement = '',
-        bool $replaceSpacesByUnderScoresInKeyNames = true,
+        private readonly bool $replaceSpacesByUnderScoresInKeyNames = true,
         ?string $xmlEncoding = null,
         string $xmlVersion = '1.0',
         array $domProperties = [],
         ?bool $xmlStandalone = null,
-        bool $addXmlDeclaration = true,
+        private bool $addXmlDeclaration = true,
         ?array $options = ['convertNullToXsiNil' => false, 'convertBoolToString' => false]
     ) {
         $this->document = new DOMDocument($xmlVersion, $xmlEncoding ?? '');
@@ -50,11 +46,7 @@ final class ArrayToXml
             $this->setDomProperties($domProperties);
         }
 
-        $this->addXmlDeclaration = $addXmlDeclaration;
-
         $this->options = array_merge($this->options, $options);
-
-        $this->replaceSpacesByUnderScoresInKeyNames = $replaceSpacesByUnderScoresInKeyNames;
 
         if (! empty($array) && $this->isArrayAllKeySequential($array)) {
             throw new DOMException('Invalid Character Error');
@@ -281,13 +273,13 @@ final class ArrayToXml
     private function addSequentialNode(DOMElement $element, mixed $value): void
     {
         if (empty($element->nodeValue) && ! is_numeric($element->nodeValue)) {
-            $element->nodeValue = htmlspecialchars($value);
+            $element->nodeValue = htmlspecialchars((string) $value);
 
             return;
         }
 
         $child = $this->document->createElement($element->tagName);
-        $child->nodeValue = htmlspecialchars($value);
+        $child->nodeValue = htmlspecialchars((string) $value);
         $element->parentNode->appendChild($child);
     }
 

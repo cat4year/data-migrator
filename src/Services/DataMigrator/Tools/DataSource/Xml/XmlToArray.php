@@ -11,7 +11,7 @@ use DOMElement;
 use DOMNamedNodeMap;
 use DOMText;
 
-final class XmlToArray
+final readonly class XmlToArray
 {
     private DOMDocument $document;
 
@@ -25,7 +25,7 @@ final class XmlToArray
 
     public static function convert(string $xml): array
     {
-        return (new self($xml))->toArray();
+        return new self($xml)->toArray();
     }
 
     private function convertAttributes(DOMNamedNodeMap $nodeMap): ?array

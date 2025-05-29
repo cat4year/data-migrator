@@ -66,9 +66,7 @@ final readonly class Importer
      */
     private function splitDataByRelationFields(array $data): array
     {
-        return collect($data)->partition(function ($tableData) {
-            return isset($tableData['modifiedAttributes']) && $this->hasRelationFields($tableData['modifiedAttributes']);
-        })->toArray();
+        return collect($data)->partition(fn($tableData) => isset($tableData['modifiedAttributes']) && $this->hasRelationFields($tableData['modifiedAttributes']))->toArray();
     }
 
     /**
@@ -338,7 +336,7 @@ final readonly class Importer
                     $columnKey
                 );
             }
-        } catch (Throwable $e) {
+        } catch (Throwable) {
 
         }
     }

@@ -71,7 +71,7 @@ class Attachment extends Model
             return null;
         }
 
-        return parse_url($url, PHP_URL_PATH) ?: null;
+        return parse_url((string) $url, PHP_URL_PATH) ?: null;
     }
 
     public function getTitleAttribute(): ?string
@@ -97,6 +97,7 @@ class Attachment extends Model
      *
      * @return bool|null
      */
+    #[\Override]
     public function delete()
     {
         if ($this->exists) {

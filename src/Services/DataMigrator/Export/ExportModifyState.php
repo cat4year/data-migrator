@@ -2,7 +2,7 @@
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export;
 
-final class ExportModifyState
+final readonly class ExportModifyState
 {
     private array $tableColumnsModifyInfoMap;
 

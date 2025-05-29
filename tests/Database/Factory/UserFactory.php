@@ -20,7 +20,7 @@ use function Workbench\Database\Factories\now;
 final class UserFactory extends Factory
 {
     /** The current password being used by the factory. */
-    protected static ?string $password;
+    protected static ?string $password = null;
 
     /**
      * The name of the factory's corresponding model.

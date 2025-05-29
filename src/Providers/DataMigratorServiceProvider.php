@@ -20,6 +20,7 @@ final class DataMigratorServiceProvider extends ServiceProvider
         MigrationDataSourceFormat::class => PhpMigrationDataSourceFormat::class,
     ];
 
+    #[\Override]
     public function register(): void
     {
         $this->mergeConfigFrom(
@@ -29,9 +30,7 @@ final class DataMigratorServiceProvider extends ServiceProvider
         require_once(__DIR__.'/../../src/Helpers/app.php');
 
         $this->registerCreator();
-        $this->app->singleton(SchemaState::class, static function ($app) {
-            return new SchemaState();
-        });
+        $this->app->singleton(SchemaState::class, static fn($app) => new SchemaState());
     }
 
     public function boot(): void
