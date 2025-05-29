@@ -32,6 +32,7 @@
         "orchestra/testbench": "^9.13",
         "phpmd/phpmd": "^2.15",
         "phpunit/phpunit": "^11.0.1",
+        "rector/rector": "^2.0",
         "spatie/laravel-ignition": "*"
     },
     "autoload": {
@@ -91,6 +92,9 @@
         "lint": [
             "@ide",
             "@pint"
+        ],
+        "rector": [
+            "@php ./vendor/bin/rector process --ansi"
         ],
         "prepare": "@php vendor/bin/testbench package:discover --ansi",
         "test": [
