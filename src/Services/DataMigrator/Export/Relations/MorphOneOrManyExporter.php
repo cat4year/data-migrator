@@ -6,6 +6,7 @@ namespace Cat4year\DataMigrator\Services\DataMigrator\Export\Relations;
 
 use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
+use Cat4year\DataMigrator\Entity\SyncId;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\ModelService;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Illuminate\Contracts\Container\BindingResolutionException;
@@ -99,10 +100,12 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
 
         $foreignKeyName = $this->relation->getForeignKeyName();
 
+        $parenSyncKey = new SyncId([$uniqueParentKeyName]);
+
         $parentTableColumn = new ExportModifySimpleColumn(
             tableName: $parentTable,
             keyName: $parentKeyName,
-            uniqueKeyName: $uniqueParentKeyName,
+            uniqueKeyName: $parenSyncKey,
             nullable: $this->tableRepository->isNullableColumn($parentTable, $parentKeyName),
             autoincrement: $this->tableRepository->isAutoincrementColumn($parentTable, $parentKeyName),
         );
@@ -111,7 +114,7 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
             morphType: $this->relation->getMorphType(),
             tableName: $relatedTable,
             keyName: $foreignKeyName,
-            sourceKeyNames: [$parentTable => $uniqueParentKeyName],
+            sourceKeyNames: [$parentTable => $parenSyncKey],
             sourceOldKeyNames: [$parentTable => $parentKeyName],
             nullable: $this->tableRepository->isNullableColumn($relatedTable, $foreignKeyName),
             autoincrement: $this->tableRepository->isAutoincrementColumn($relatedTable, $foreignKeyName),
@@ -128,11 +131,12 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
 
         $relatedIdKeyName = $related->getKeyName();
         $relatedUniqueIdKeyName = $this->modelService->identifyUniqueIdColumn($related);
+        $relatedSyncKey = new SyncId([$relatedUniqueIdKeyName]);
         if ($relatedIdKeyName !== $foreignKeyName) {
             $result[$relatedTable][$relatedIdKeyName] = new ExportModifySimpleColumn(
                 tableName: $relatedTable,
                 keyName: $relatedIdKeyName,
-                uniqueKeyName: $relatedUniqueIdKeyName,
+                uniqueKeyName: $relatedSyncKey,
                 nullable: $this->tableRepository->isNullableColumn($relatedTable, $relatedIdKeyName),
                 autoincrement: $this->tableRepository->isAutoincrementColumn($relatedTable, $relatedIdKeyName),
             );

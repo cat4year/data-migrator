@@ -7,10 +7,16 @@ namespace Cat4year\DataMigrator\Services\DataMigrator\Import;
 use Cat4year\DataMigrator\Entity\ExportModifyColumn;
 use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
+use Cat4year\DataMigrator\Entity\SyncId;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Illuminate\Support\Collection as SupportCollection;
 
 final readonly class ImportDataPreparer
 {
+    public function __construct(private TableService $tableService)
+    {
+    }
+
     /**
      * @param array{items: array, modifiedAttributes: array} $tableData
      * @param SupportCollection<int, SupportCollection> $existItemsByTable
@@ -68,10 +74,6 @@ final readonly class ImportDataPreparer
 
             $existRelationTableItems = $existItemsByTable->get($modifyTable);
 
-            if (empty($existRelationTableItems)) {
-                continue;
-            }
-
             $item = $this->autoincrementRelationField(
                 $item,
                 $existRelationTableItems,
@@ -102,17 +104,20 @@ final readonly class ImportDataPreparer
         array $needFixLater,
         array $syncId,
     ): array {
-        $maybeModifiedItem = $this->invertModifyAttribute(
-            $item,
-            $existItems,
-            $attributeKeyName,
-            $modifyAttribute
-        );
 
-        $isModifiedItem = ! empty(array_diff_assoc($maybeModifiedItem, $item)) || ! empty(array_diff_assoc($item, $maybeModifiedItem));
+        if ($existItems?->isNotEmpty()) {
+            $maybeModifiedItem = $this->invertModifyAttribute(
+                $item,
+                $existItems,
+                $attributeKeyName,
+                $modifyAttribute
+            );
 
-        if ($isModifiedItem) {
-            return $maybeModifiedItem;
+            $isModifiedItem = ! empty(array_diff_assoc($maybeModifiedItem, $item)) || ! empty(array_diff_assoc($item, $maybeModifiedItem));
+
+            if ($isModifiedItem) {
+                return $maybeModifiedItem;
+            }
         }
 
         if (
@@ -167,9 +172,9 @@ final readonly class ImportDataPreparer
         return $item;
     }
 
-    public function beforeSyncWithDatabase(array $items, array $modifiedAttributes): array
+    public function beforeSyncWithDatabase(string $tableName, array $items, array $modifiedAttributes): array
     {
-        $primaryKey = $this->getPrimaryKeyForUnsetBeforeSync($modifiedAttributes);
+        $primaryKey = $this->getPrimaryKeyForUnsetBeforeSync($tableName, $modifiedAttributes);
 
         if ($primaryKey !== null) {
             return $this->removeOldPrimaryKeyBeforeSave($primaryKey, $items);
@@ -195,13 +200,12 @@ final readonly class ImportDataPreparer
      * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
      * @return string|null
      */
-    private function getPrimaryKeyForUnsetBeforeSync(array $modifiedAttributes): ?string
+    private function getPrimaryKeyForUnsetBeforeSync(string $tableName, array $modifiedAttributes): ?string
     {
         $primaryKeyColumn = $this->getPrimaryKeyColumn($modifiedAttributes);
 
         if ($primaryKeyColumn === null) {
-            //todo: добавить поиск primaryKey, которого не было в modifiedAttributes?
-            return null;
+            return $this->tableService->identifyPrimaryKeyNameByTable($tableName);;
         }
 
         $sourceUniqueKeyName = $primaryKeyColumn->getSourceUniqueKeyName();
@@ -258,15 +262,31 @@ final readonly class ImportDataPreparer
         $result = [];
         foreach ($items as $item) {
             foreach ($attributesForFixKeyName as $attributeForFixKeyName) {
+                if(!isset($attributesMetaData[$attributeForFixKeyName])){
+                    continue;
+                }
                 $attributeModify = $attributesMetaData[$attributeForFixKeyName];
-                $existRelationTableItems = $existItems->get($attributeModify->getSourceTableName());
+                if($attributeModify instanceof ExportModifyMorphColumn){
+                    foreach($attributeModify->getSourceTableNames() as $sourceTableName => $columnName){
+                        $existRelationTableItems = $existItems->get($sourceTableName);
+                        $item = $this->invertModifyAttribute(
+                            $item,
+                            $existRelationTableItems,
+                            $attributeForFixKeyName,
+                            $attributeModify
+                        );
+                    }
+                } else {
+                    $existRelationTableItems = $existItems->get($attributeModify->getSourceTableName());//todo: а морф?
 
-                $item = $this->invertModifyAttribute(
-                    $item,
-                    $existRelationTableItems,
-                    $attributeForFixKeyName,
-                    $attributeModify
-                );
+                    $item = $this->invertModifyAttribute(
+                        $item,
+                        $existRelationTableItems,
+                        $attributeForFixKeyName,
+                        $attributeModify
+                    );
+                }
+
             }
 
             $result[] = $item;
@@ -278,9 +298,10 @@ final readonly class ImportDataPreparer
     /**
      * @todo: Скорее всего надо будет заменить $primaryColumnKeyName на syncIdState::makeHash
      */
-    public function modifyAndSaveOnlyFixLaterFields(array $items, array $neededAttributes, string $primaryColumnKeyName): array
+    public function modifyAndSaveOnlyFixLaterFields(array $items, array $neededAttributes, SyncId $syncId): array
     {
         $result = [];
+
         foreach ($items as $item) {
             $newItem = [];
 
@@ -292,8 +313,8 @@ final readonly class ImportDataPreparer
                 $newItem[$attribute] = $item[$attribute];
             }
 
-            $uniqueIdAttributeValue = $item[$primaryColumnKeyName];
-            $result[$uniqueIdAttributeValue] = $newItem;
+           // $uniqueIdAttributeValue = $item[$primaryColumnKeyName];
+            $result[$syncId->keyStringByValues($item)] = $newItem;
         }
 
         return $result;

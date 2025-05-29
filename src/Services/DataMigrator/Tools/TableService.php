@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Tools;
 
+use Cat4year\DataMigrator\Entity\SyncId;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 use Schema;
@@ -12,7 +13,7 @@ final readonly class TableService
 {
 
     public function __construct(
-        private SchemaState $schemaState
+        private SchemaState $schemaState,
     ) {}
 
     public function schemaState(): SchemaState
@@ -32,6 +33,11 @@ final readonly class TableService
         }
 
         return null;
+    }
+
+    public function syncId(string $table): SyncId
+    {
+        return app(SyncIdState::class)->tableSyncId($table); //todo: циклическая зависимость-
     }
 
     /**

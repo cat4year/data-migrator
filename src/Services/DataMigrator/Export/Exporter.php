@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export;
 
+use Cat4year\DataMigrator\Entity\SyncId;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationsExporter;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use DB;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection as SupportCollection;
 use InvalidArgumentException;
 use JsonException;
@@ -23,6 +26,7 @@ final readonly class Exporter
         private RelationsExporter $relationManager,
         private ExportSorter $sorter,
         private TableService $tableRepository,
+        private SyncIdState $syncIdState,
         private ExportSyncIdAttacher $syncIdAttacher,
     ) {
     }
@@ -105,7 +109,9 @@ final readonly class Exporter
      */
     public function makeEntityData(array $ids): array
     {
-        $mainEntityResult = $this->makeItems($this->entity->getTable(), $ids, $this->entity->getKeyName());
+        $table = $this->entity->getTable();
+        $syncId = $this->syncIdState->tableSyncId($table);
+        $mainEntityResult = $this->makeItems($table, $ids, $syncId, $this->entity->getKeyName());
 
         if (empty($mainEntityResult)) {
             return [];
@@ -113,14 +119,15 @@ final readonly class Exporter
 
         if (! $this->configurator->withRelations()) {
             $resultMainData = [
-                'table' => $this->entity->getTable(),
+                'table' => $table,
                 'items' => $mainEntityResult,
+                'syncId' => $syncId,
             ];
 
-            return [$this->entity->getTable() => $resultMainData];
+            return [$table => $resultMainData];
         }
 
-        $state = $this->relationManager->collectRelations($this->entity->getTable(), $ids); // todo: перекрывает result
+        $state = $this->relationManager->collectRelations($table, $ids); // todo: перекрывает result
 
         /** @var string $entityTable */
         foreach ($state->entityIds as $entityTable => $entityIds) {
@@ -131,7 +138,8 @@ final readonly class Exporter
                 continue;
             }
 
-            $entityItems = $this->makeItems($entityTable, $entityIds, $keyName);
+            $entitySyncId = $this->syncIdState->tableSyncId($entityTable);
+            $entityItems = $this->makeItems($entityTable, $entityIds, $entitySyncId, $keyName);
 
             if (empty($entityItems)) {
                 continue;
@@ -140,6 +148,7 @@ final readonly class Exporter
             $resultDataForTable = [
                 'table' => $entityTable,
                 'items' => $entityItems,
+                'syncId' => $entitySyncId,
             ];
 
             $state->result->put($entityTable, $resultDataForTable);
@@ -152,27 +161,42 @@ final readonly class Exporter
 
         $result = $exportModifier->modify();
 
-        $resultWithUniqueColumns = $this->syncIdAttacher->attachSyncIds($result);
+        //$resultWithUniqueColumns = $this->syncIdAttacher->attachSyncIds($result);
 
-        return $this->sorter->sort($resultWithUniqueColumns);
+        return $this->sorter->sort($result);
     }
 
     /**
      * @param list<non-negative-int|non-empty-string> $ids
      * @return list<array<string, mixed>>
      */
-    private function makeItems(string $table, array $ids, string $idKey = 'id', bool $emptyIsAll = false): array
+    private function makeItems(
+        string $table,
+        array $ids,
+        SyncId $syncId,
+        string $idKey = 'id',
+        bool $emptyIsAll = false
+    ): array
     {
         if (empty($ids) && ! $emptyIsAll) {
             return [];
         }
 
-        $collection = DB::table($table)
-            ->when(! empty($ids), static fn ($q) => $q->whereIn($idKey, $ids))
+        $items = DB::table($table)
+            ->when(!empty($ids), static fn($q) => $q->whereIn($idKey, $ids))
             ->get()
-            ->keyBy($idKey);
+            ->keyBy(static fn(stdClass $item) => $syncId->keyStringByValues((array)$item));
 
-        return $this->dataToArray($collection);
+        return $this->dataToArray($items);
+    }
+
+    private static function withConditionsBySyncId(Builder $query, array $keys, array $values): Builder
+    {
+        foreach ($keys as $key) {
+            $query->whereIn($key, array_column($values, $key));
+        }
+
+        return $query;
     }
 
     public function dataToArray(SupportCollection $collection, bool $safeKeyName = true): array

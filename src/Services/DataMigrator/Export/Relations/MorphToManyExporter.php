@@ -8,6 +8,7 @@ use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
 use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\ModelService;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use DB;
 use Illuminate\Contracts\Container\BindingResolutionException;
@@ -21,6 +22,7 @@ final readonly class MorphToManyExporter implements RelationExporter
         private MorphToMany $relation,
         private ModelService $modelService,
         private TableService $tableRepository,
+        private SyncIdState $syncIdState,
     ) {
     }
 
@@ -109,22 +111,14 @@ final readonly class MorphToManyExporter implements RelationExporter
     public function getModifyInfo(): array
     {
         $parent = $this->relation->getParent();
-        $uniqueKeyName = $this->modelService->identifyUniqueIdColumn($parent);
+        $uniqueKeyName = $this->syncIdState->tableSyncId($parent->getTable());
         $parentTable = $parent->getTable();
         $parentKeyName = $parent->getKeyName();
-
-        if ($uniqueKeyName === null) {
-            // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
-        }
 
         $related = $this->relation->getRelated();
         $relatedTable = $related->getTable();
         $relatedKeyName = $related->getKeyName();
-        $uniqueRelatedKeyName = $this->modelService->identifyUniqueIdColumn($related);
-
-        if ($uniqueRelatedKeyName === null) {
-            // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
-        }
+        $uniqueRelatedKeyName = $this->syncIdState->tableSyncId($related->getTable());
 
         $pivotTable = $this->relation->getTable();
         $parentPivotKeyName = $this->relation->getForeignPivotKeyName();

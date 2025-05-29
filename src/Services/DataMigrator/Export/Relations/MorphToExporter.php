@@ -6,6 +6,7 @@ namespace Cat4year\DataMigrator\Services\DataMigrator\Export\Relations;
 
 use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
+use Cat4year\DataMigrator\Entity\SyncId;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\ModelService;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Illuminate\Contracts\Container\BindingResolutionException;
@@ -90,21 +91,23 @@ final readonly class MorphToExporter implements RelationExporter
 
         $oldKeyNames = array_column($foreignClassesColumnsData, 'oldKeyName', 'table');
         $keyNames = array_column($foreignClassesColumnsData, 'keyName', 'table');
+        $syncKeyNames = array_map(static fn(string $keyName) => new SyncId([$keyName]), $keyNames);
 
         $parentTableForeignColumn = new ExportModifyMorphColumn(
             morphType: $this->relation->getMorphType(),
             tableName: $parentTable,
             keyName: $foreignKeyName,
-            sourceKeyNames: $keyNames,
+            sourceKeyNames: $syncKeyNames,
             sourceOldKeyNames: $oldKeyNames,
             nullable: $this->tableRepository->isNullableColumn($parentTable, $foreignKeyName),
             autoincrement: $this->tableRepository->isAutoincrementColumn($parentTable, $foreignKeyName),
         );
 
+        $parentSyncKey = new SyncId([$uniqueParentKeyName]);
         $parentTableColumn = new ExportModifySimpleColumn(
             tableName: $parentTable,
             keyName: $parentKeyName,
-            uniqueKeyName: $uniqueParentKeyName,
+            uniqueKeyName: $parentSyncKey,
             nullable: $this->tableRepository->isNullableColumn($parentTable, $parentKeyName),
             autoincrement: $this->tableRepository->isAutoincrementColumn($parentTable, $parentKeyName),
         );
@@ -117,7 +120,7 @@ final readonly class MorphToExporter implements RelationExporter
                     $column = new ExportModifySimpleColumn(
                         tableName: $columnData['table'], //todo: почему это в entity массив, а не объект?
                         keyName: $columnData['oldKeyName'],
-                        uniqueKeyName: $columnData['keyName'],
+                        uniqueKeyName: new SyncId([$columnData['keyName']]),
                         nullable: $columnData['nullable'],
                         autoincrement: $columnData['autoIncrement'],
                         isPrimaryKey: $columnData['isPrimaryKey'],

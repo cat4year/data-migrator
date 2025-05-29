@@ -8,7 +8,7 @@ use JsonSerializable;
 final class ExportModifyMorphColumn implements ExportModifyColumn, Arrayable, JsonSerializable
 {
     /**
-     * @param list<string>|array<string, string> $sourceKeyNames
+     * @param list<SyncId>|array<string, SyncId> $sourceKeyNames
      * @param list<string>|array<string, string> $sourceOldKeyNames
      */
     public function __construct(
@@ -65,12 +65,27 @@ final class ExportModifyMorphColumn implements ExportModifyColumn, Arrayable, Js
         throw new \RuntimeException('Проблемка getSourceTableName');
     }
 
+    public function getSourceTableNames(): array
+    {
+        return $this->getSourceKeyNames();
+    }
+
     public function getSourceKeyName(): string
     {
         throw new \RuntimeException('Проблемка getSourceKeyName');
     }
 
-    public function getSourceUniqueKeyName(): ?string
+    public function getSourceUniqueKeyNameByTable(string $table): ?SyncId
+    {
+        return $this->getSourceKeyNames()[$table] ?? null;
+    }
+
+    public function getSourceKeyNameByTable(string $table): ?string
+    {
+        return $this->getSourceOldKeyNames()[$table] ?? null;
+    }
+
+    public function getSourceUniqueKeyName(): SyncId
     {
         throw new \RuntimeException('Проблемка getSourceUniqueKeyName');
     }

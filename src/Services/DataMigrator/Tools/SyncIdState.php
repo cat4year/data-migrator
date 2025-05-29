@@ -51,10 +51,6 @@ final class SyncIdState
     private function makeSyncId(string $tableName): SyncId
     {
         $potentialSyncIds = $this->potentialSyncIds($tableName);
-        if($tableName === 'slug_secondables'){
-            echo 'hello';
-            // dd($potentialSyncIds);
-        }
 
         $potentialSyncId = $this->firstUniquePotentialSyncIds($potentialSyncIds, $tableName);
         if (!is_array($potentialSyncId)) {
@@ -99,7 +95,7 @@ final class SyncIdState
         $syncIdByTables = config('data-migrator.table_sync_id', []);
         if (
             isset($syncIdByTables[$tableName])
-            && !$this->hasPotentialSyncId($tableName, self::makeHashSyncId($syncIdByTables[$tableName]))
+            && !$this->hasPotentialSyncId($tableName, SyncId::makeHash($syncIdByTables[$tableName]))
         ) {
             return $syncIdByTables[$tableName];//нет гарантии, что не будет дублей с этим ключом/ключами
         }
@@ -140,7 +136,7 @@ final class SyncIdState
             }
 
             $foundPotentialColumn = $this->tableService->tryFindUniqueColumnsByIndex($tableName);
-            if (!$this->hasPotentialSyncId($tableName, self::makeHashSyncId($foundPotentialColumn))) {
+            if ($foundPotentialColumn!== null && !$this->hasPotentialSyncId($tableName, SyncId::makeHash($foundPotentialColumn))) {
                 return $foundPotentialColumn;
             }
         } catch (RuntimeException) {

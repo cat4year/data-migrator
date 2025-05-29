@@ -7,6 +7,7 @@ namespace Cat4year\DataMigrator\Services\DataMigrator\Export\Relations;
 use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\ModelService;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
@@ -16,8 +17,8 @@ final readonly class BelongsToExporter implements RelationExporter
 {
     public function __construct(
         private BelongsTo $relation,
-        private ModelService $modelService,
         private TableService $tableRepository,
+        private SyncIdState $syncIdState,
     ) {}
 
     /**
@@ -73,21 +74,14 @@ final readonly class BelongsToExporter implements RelationExporter
         $parent = $this->relation->getParent();
         $parentTable = $parent->getTable();
         $parentKeyName = $parent->getKeyName();
-        $uniqueParentKeyName = $this->modelService->identifyUniqueIdColumn($parent);
+        $uniqueParentKeyName = $this->syncIdState->tableSyncId($parent->getTable());
 
         $related = $this->relation->getRelated();
         $relatedTable = $related->getTable();
         $relatedKeyName = $related->getKeyName();
-        $uniqueRelatedKeyName = $this->modelService->identifyUniqueIdColumn($related);
-
-        $uniqueKeyName = $uniqueParentKeyName;
+        $uniqueRelatedKeyName =  $this->syncIdState->tableSyncId($related->getTable());
         $oldForeignKeyName = $this->relation->getOwnerKeyName();
-        $uniqueForeignKeyName = $uniqueRelatedKeyName;
         $foreignKeyName = $this->relation->getForeignKeyName();
-
-        if ($uniqueKeyName === null || $uniqueRelatedKeyName === null) {
-            // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
-        }
 
         $parentTableForeignColumn = new ExportModifyForeignColumn(
             tableName: $parentTable,
@@ -114,17 +108,13 @@ final readonly class BelongsToExporter implements RelationExporter
             autoincrement: $this->tableRepository->isAutoincrementColumn($relatedTable, $relatedKeyName),
         );
 
-        //$this->exportModifyInfo::add($parentTableForeignColumn);
-        //$this->exportModifyInfo::add($parentTableColumn);
-        //$this->exportModifyInfo::add($relatedTableColumn);
-
         return [
             $parentTable => [
                 $parentTableForeignColumn->getKeyName() => $parentTableForeignColumn,
                 $parentTableColumn->getKeyName() => $parentTableColumn,
             ],
             $relatedTable => [
-                $relatedKeyName => $relatedTableColumn,
+                $relatedTableColumn->getKeyName() => $relatedTableColumn,
             ],
         ];
     }

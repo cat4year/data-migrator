@@ -6,6 +6,7 @@ namespace Cat4year\DataMigratorTests\Feature\Export\Relations;
 
 use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
+use Cat4year\DataMigrator\Entity\SyncId;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\ExportModifier;
 use Cat4year\DataMigratorTests\Database\Factory\SlugFirstFactory;
 use Cat4year\DataMigratorTests\Database\Factory\SlugThreeFactory;
@@ -62,7 +63,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                                     tableName: 'slug_firsts',
                                     keyName: 'slug_three_id',
                                     foreignTableName: 'slug_threes',
-                                    foreignUniqueKeyName: 'slug',
+                                    foreignUniqueKeyName: new SyncId(['slug']),
                                     foreignOldKeyName: 'id',
                                     nullable: true,
                                     autoincrement: false,
@@ -71,7 +72,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                                 'id' => new ExportModifySimpleColumn(
                                     tableName: 'slug_firsts',
                                     keyName: 'id',
-                                    uniqueKeyName: 'slug',
+                                    uniqueKeyName: new SyncId(['slug']),
                                     nullable: false,
                                     autoincrement: true,
                                     isPrimaryKey: true,
@@ -81,7 +82,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                                 'id' => new ExportModifySimpleColumn(
                                     tableName: 'slug_threes',
                                     keyName: 'id',
-                                    uniqueKeyName: 'slug',
+                                    uniqueKeyName: new SyncId(['slug']),
                                     nullable: false,
                                     autoincrement: true,
                                     isPrimaryKey: true,
@@ -97,7 +98,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                                         'tableName' => 'slug_firsts',
                                         'keyName' => 'slug_three_id',
                                         'foreignTableName' => 'slug_threes',
-                                        'foreignUniqueKeyName' => 'slug',
+                                        'foreignUniqueKeyName' => new SyncId(['slug']),
                                         'foreignOldKeyName' => 'id',
                                         'nullable' => true,
                                         'autoincrement' => false,
@@ -107,7 +108,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                                     new ExportModifySimpleColumn(...[
                                         'tableName' => 'slug_firsts',
                                         'keyName' => 'id',
-                                        'uniqueKeyName' => 'slug',
+                                        'uniqueKeyName' => new SyncId(['slug']),
                                         'nullable' => false,
                                         'autoincrement' => true,
                                         'isPrimaryKey' => true,
@@ -119,7 +120,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                                     new ExportModifySimpleColumn(...[
                                         'tableName' => 'slug_threes',
                                         'keyName' => 'id',
-                                        'uniqueKeyName' => 'slug',
+                                        'uniqueKeyName' => new SyncId(['slug']),
                                         'nullable' => false,
                                         'autoincrement' => true,
                                         'isPrimaryKey' => true,
@@ -166,7 +167,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                                     tableName: 'slug_firsts',
                                     keyName: 'slug_three_id',
                                     foreignTableName: 'slug_threes',
-                                    foreignUniqueKeyName: 'slug',
+                                    foreignUniqueKeyName: new SyncId(['slug']),
                                     foreignOldKeyName: 'id',
                                     nullable: true,
                                     autoincrement: false,
@@ -175,7 +176,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                                 'id' => new ExportModifySimpleColumn(
                                     tableName: 'slug_firsts',
                                     keyName: 'id',
-                                    uniqueKeyName: 'slug',
+                                    uniqueKeyName: new SyncId(['slug']),
                                     nullable: false,
                                     autoincrement: true,
                                     isPrimaryKey: true,
@@ -185,7 +186,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                                 'id' => new ExportModifySimpleColumn(
                                     tableName: 'slug_threes',
                                     keyName: 'id',
-                                    uniqueKeyName: 'slug',
+                                    uniqueKeyName: new SyncId(['slug']),
                                     nullable: false,
                                     autoincrement: true,
                                     isPrimaryKey: true,
@@ -201,7 +202,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                                         'tableName' => 'slug_firsts',
                                         'keyName' => 'slug_three_id',
                                         'foreignTableName' => 'slug_threes',
-                                        'foreignUniqueKeyName' => 'slug',
+                                        'foreignUniqueKeyName' => new SyncId(['slug']),
                                         'foreignOldKeyName' => 'id',
                                         'nullable' => true,
                                         'autoincrement' => false,
@@ -211,7 +212,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                                     new ExportModifySimpleColumn(...[
                                         'tableName' => 'slug_firsts',
                                         'keyName' => 'id',
-                                        'uniqueKeyName' => 'slug',
+                                        'uniqueKeyName' => new SyncId(['slug']),
                                         'nullable' => false,
                                         'autoincrement' => true,
                                         'isPrimaryKey' => true,
@@ -223,7 +224,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                                     new ExportModifySimpleColumn(...[
                                         'tableName' => 'slug_threes',
                                         'keyName' => 'id',
-                                        'uniqueKeyName' => 'slug',
+                                        'uniqueKeyName' => new SyncId(['slug']),
                                         'nullable' => false,
                                         'autoincrement' => true,
                                         'isPrimaryKey' => true,

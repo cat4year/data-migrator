@@ -13,7 +13,7 @@ interface ExportModifyColumn
 
     public function getSourceKeyName(): string;
 
-    public function getSourceUniqueKeyName(): ?string;
+    public function getSourceUniqueKeyName(): SyncId;
 
     public function isNullable(): bool;
 

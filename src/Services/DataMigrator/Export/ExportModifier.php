@@ -4,6 +4,8 @@ namespace Cat4year\DataMigrator\Services\DataMigrator\Export;
 
 use Cat4year\DataMigrator\Entity\ExportModifyColumn;
 use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
+use Cat4year\DataMigrator\Entity\SyncId;
+use Cat4year\DataMigrator\Exceptions\Export\SourceItemNotFoundException;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -101,7 +103,6 @@ final readonly class ExportModifier
      */
     public function modifyColumnsValues(array $entitiesModifyInfo): array
     {
-
         $result = [];
         $entities = $this->entitiesCollections->toArray();
         foreach ($entities as $tableName => $entityInfo) {
@@ -131,53 +132,66 @@ final readonly class ExportModifier
                         $morphType = $modifyInfoByKey->getMorphType();
                         $morphClass = $attributes[$morphType];
                         $modifyInfoTable = app($morphClass)->getTable();
-                        $modifyKeyNames = $modifyInfoByKey->getSourceKeyNames()[$modifyInfoTable];
-
-                        //todo
-                        if (is_string($modifyKeyNames)) {
-                            $modifyKeyName = $modifyKeyNames;
-                        } elseif (is_array($modifyKeyNames) && count($modifyKeyNames) === 1) {
-                            $modifyKeyName = $modifyKeyNames[0];
-                        } else {
-                            dd($modifyKeyNames); //in_array может проверять с $attributeKeyName?
-                        }
-
+                        $syncId = $modifyInfoByKey->getSourceUniqueKeyNameByTable($modifyInfoTable);
+                        $sourceKeyName = $modifyInfoByKey->getSourceKeyNameByTable($modifyInfoTable);
                     } else {
                         $modifyInfoTable = $modifyInfoByKey->getSourceTableName();
-                        $modifyKeyName = $modifyInfoByKey->getSourceUniqueKeyName();
+                        $sourceKeyName = $modifyInfoByKey->getSourceKeyName();
+                        $syncId = $modifyInfoByKey->getSourceUniqueKeyName();
+                    }
+
+                    assert($sourceKeyName !== null);
+                    assert($syncId !== null);
+
+                    if (!isset($entities[$modifyInfoTable]['items'])) {
+                        /**
+                         * todo: надо решить как тут действовать.
+                         * todo: Либо отменять экспорт, либо пропускать с неизменным автоинкрементным полем
+                         **/
+                        throw new RuntimeException('Отсутствуют данные таблицы источника для подмены колонки');
                     }
 
                     try {
-                        if (!isset($entities[$modifyInfoTable])) {
-                            /**
-                             * todo: надо решить как тут действовать.
-                             * todo: Либо отменять экспорт, либо пропускать с неизменным автоинкрементным полем
-                             **/
-                            throw new RuntimeException('Отсутствуют данные таблицы источника для подмены колонки');
-                        }
-
-                        $tableForFindNewAttributeValue = $entities[$modifyInfoTable];
-                        $newValue = $tableForFindNewAttributeValue['items'][$attributeValue][$modifyKeyName];
-                        $result[$tableName]['items'][$itemKey][$attributeKeyName] = $newValue; // todo: variable not found
-                    } catch (Throwable) {
-                        Log::error('Ошибка при подмене колонки', [
-                            $entities,
-                            $modifyInfoTable,
+                        $newSyncValue = $this->getSyncStringFromSource(
+                            $entities[$modifyInfoTable]['items'],
+                            $sourceKeyName,
                             $attributeValue,
-                            $modifyKeyName,
-                        ]);
+                            $syncId
+                        );
+
+                        $result[$tableName]['items'][$itemKey][$attributeKeyName] = $newSyncValue;
+                    } catch (SourceItemNotFoundException) {
+                        continue;
                     }
                 }
             }
             $result[$tableName]['modifiedAttributes'] = $entitiesModifyInfo[$tableName];
+            $result[$tableName]['syncId'] = $entityInfo['syncId'];
         }
 
         return $result;
     }
 
-    public function addModifyInfo()
+    /**
+     * @throws SourceItemNotFoundException
+     */
+    private function getSyncStringFromSource(array $items, string $key, string|int $value, SyncId $syncId): string
     {
+        $sourceItem = collect($items)->first(static fn($item) => $item[$key] === $value);
 
+        if ($sourceItem === null) {
+            throw new SourceItemNotFoundException("Source item not found for attribute value: {$value}");
+        }
+
+        return $syncId->keyStringByValues($sourceItem);
     }
 
+    private function getModifyInfoItemAttributes(array $items, SyncId $syncId, string $attributeKeyName, string $attributeValue)
+    {
+        $collection = collect($items);
+
+        $item = $collection->firstWhere($attributeKeyName, $attributeValue);
+
+        return $syncId->keyStringByValues($item);
+    }
 }
