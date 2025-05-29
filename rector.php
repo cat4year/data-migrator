@@ -2,14 +2,46 @@
 
 declare(strict_types=1);
 
+use Rector\Caching\ValueObject\Storage\FileCacheStorage;
+use Rector\CodeQuality\Rector\FuncCall\CompactToVariablesRector;
 use Rector\Config\RectorConfig;
+use RectorLaravel\Set\LaravelLevelSetList;
+use RectorLaravel\Set\LaravelSetList;
 
 return RectorConfig::configure()
-    ->withPaths([__DIR__ . '/src', __DIR__ . '/tests'])
+    ->withBootstrapFiles([
+        __DIR__ . '/vendor/orchestra/testbench-core/laravel/bootstrap/app.php'
+    ])
+    ->withPaths([
+        __DIR__ . '/src',
+        __DIR__ . '/tests',
+        __DIR__ . '/config',
+    ])
     ->withSkip([
         __DIR__ . '/tests/Fixtures/**',
         __DIR__ . '/tests/**/Fixtures/**',
         __DIR__ . '/tests/Resource/**',
         __DIR__ . '/tests/**/Resource/**',
+        CompactToVariablesRector::class,
     ])
-    ->withPhpSets(php84: true);
+    ->withSets([
+        LaravelSetList::ARRAY_STR_FUNCTIONS_TO_STATIC_CALL,
+        LaravelLevelSetList::UP_TO_LARAVEL_120,
+        LaravelSetList::LARAVEL_120,
+        LaravelSetList::LARAVEL_ARRAYACCESS_TO_METHOD_CALL,
+        LaravelSetList::LARAVEL_ARRAY_STR_FUNCTION_TO_STATIC_CALL,
+        LaravelSetList::LARAVEL_CODE_QUALITY,
+        LaravelSetList::LARAVEL_COLLECTION,
+        LaravelSetList::LARAVEL_CONTAINER_STRING_TO_FULLY_QUALIFIED_NAME,
+        LaravelSetList::LARAVEL_ELOQUENT_MAGIC_METHOD_TO_QUERY_BUILDER,
+        LaravelSetList::LARAVEL_FACADE_ALIASES_TO_FULL_NAMES,
+        LaravelSetList::LARAVEL_IF_HELPERS,
+        LaravelSetList::LARAVEL_LEGACY_FACTORIES_TO_CLASSES,
+        LaravelSetList::LARAVEL_STATIC_TO_INJECTION,
+    ])
+    //->withPreparedSets(codeQuality: true)
+    ->withPhpSets(php84: true)
+    ->withImportNames(importShortClasses: false)
+    ->withPHPStanConfigs([__DIR__ . '/phpstan.neon'])
+    ->withCache(__DIR__.'/storage/rector', FileCacheStorage::class)
+    ->withParallel(360);

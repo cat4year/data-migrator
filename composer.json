@@ -22,6 +22,7 @@
         "barryvdh/laravel-ide-helper": "*",
         "brainmaestro/composer-git-hooks": "*",
         "dg/bypass-finals": "^1.9",
+        "driftingly/rector-laravel": "^2.0",
         "fakerphp/faker": "^1.23",
         "larastan/larastan": "^3.0",
         "laravel/pail": "^1.1",
