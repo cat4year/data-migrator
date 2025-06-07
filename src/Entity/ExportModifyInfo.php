@@ -1,18 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cat4year\DataMigrator\Entity;
 
 final class ExportModifyInfo
 {
     private static array $state = [];
 
-    public static function add(ExportModifyColumn $column): void
+    public static function add(ExportModifyColumn $exportModifyColumn): void
     {
-        $hash = $column->getKeyName() . '|' . $column->getTableName();
+        $hash = $exportModifyColumn->getKeyName() . '|' . $exportModifyColumn->getTableName();
         if (isset(self::$state[$hash])) {
             return;
         }
 
-        self::$state[$hash] = $column;
+        self::$state[$hash] = $exportModifyColumn;
     }
 }

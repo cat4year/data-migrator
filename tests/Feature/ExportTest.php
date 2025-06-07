@@ -41,19 +41,19 @@ final class ExportTest extends BaseTestCase
      */
     public function test_export_without_relations(): void
     {
-        $disk = Storage::fake('public');
+        $filesystem = Storage::fake('public');
         $path = 'test_without_relations';
-        $configurator = app(ExportConfigurator::class);
-        $configurator->setWithRelations(false)
-            ->setDisk($disk)
+        $exportConfigurator = app(ExportConfigurator::class);
+        $exportConfigurator->setWithRelations(false)
+            ->setDisk($filesystem)
             ->setFileName($path)
             ->setMaxRelationDepth(PHP_INT_MAX);
 
-        $exporter = Exporter::create(app(SlugFirst::class), $configurator);
+        $exporter = Exporter::create(app(SlugFirst::class), $exportConfigurator);
 
         $exporter->export();
 
-        $this->assertTrue($disk->exists($configurator->makeSourceBaseName()));
+        $this->assertTrue($filesystem->exists($exportConfigurator->makeSourceBaseName()));
     }
 
     /**
@@ -61,15 +61,15 @@ final class ExportTest extends BaseTestCase
      */
     public function test_export_with_relations(): void
     {
-        $disk = Storage::fake('public');
+        $filesystem = Storage::fake('public');
         $path = 'test_with_relations';
-        $configurator = app(ExportConfigurator::class);
-        $configurator->setDisk($disk)->setFileName($path)->setMaxRelationDepth(PHP_INT_MAX);
-        $exporter = Exporter::create(app(SlugFirst::class), $configurator);
+        $exportConfigurator = app(ExportConfigurator::class);
+        $exportConfigurator->setDisk($filesystem)->setFileName($path)->setMaxRelationDepth(PHP_INT_MAX);
+        $exporter = Exporter::create(app(SlugFirst::class), $exportConfigurator);
 
         $exporter->export();
 
-        $this->assertTrue($disk->exists($configurator->makeSourceBaseName()));
+        $this->assertTrue($filesystem->exists($exportConfigurator->makeSourceBaseName()));
     }
 
     #[\Override]

@@ -15,32 +15,32 @@ use ReflectionProperty;
 final readonly class HasOneOrManyThroughExporter implements RelationExporter
 {
     public function __construct(
-        private HasOneOrManyThrough $relation,
+        private HasOneOrManyThrough $hasOneOrManyThrough,
         private ModelService $modelService,
-        private TableService $tableRepository,
+        private TableService $tableService,
     ) {
     }
 
     /**
      * @throws BindingResolutionException
      */
-    public static function create(HasOneOrManyThrough $relation): self
+    public static function create(HasOneOrManyThrough $hasOneOrManyThrough): self
     {
-        return app()->makeWith(self::class, ['relation' => $relation]);
+        return app()->makeWith(self::class, ['relation' => $hasOneOrManyThrough]);
     }
 
     public function makeExportData(array $foreignIds): array
     {
-        $parent = $this->relation->getParent();
-        $parentTable = $parent->getTable();
-        $parentKeyName = $parent->getKeyName();
-        $parentForeignKey = $this->relation->getFirstKeyName();
-        $parentIds = $this->getUsedIdsByModel($parent, $foreignIds, $parentForeignKey);
+        $model = $this->hasOneOrManyThrough->getParent();
+        $parentTable = $model->getTable();
+        $parentKeyName = $model->getKeyName();
+        $parentForeignKey = $this->hasOneOrManyThrough->getFirstKeyName();
+        $parentIds = $this->getUsedIdsByModel($model, $foreignIds, $parentForeignKey);
 
-        $related = $this->relation->getRelated();
+        $related = $this->hasOneOrManyThrough->getRelated();
         $relatedTable = $related->getTable();
         $relatedKeyName = $related->getKeyName();
-        $relatedForeignKey = $this->relation->getForeignKeyName();
+        $relatedForeignKey = $this->hasOneOrManyThrough->getForeignKeyName();
         $relatedIds = $this->getUsedIdsByModel($related, $parentIds, $relatedForeignKey);
 
         return [
@@ -76,14 +76,13 @@ final readonly class HasOneOrManyThroughExporter implements RelationExporter
     private function getEntity(): Model
     {
         try {
-            $reflectionFarParentProperty = new ReflectionProperty($this->relation::class, 'farParent');
+            $reflectionProperty = new ReflectionProperty($this->hasOneOrManyThrough::class, 'farParent');
 
-            /** @var Model $farParent */
-            return $reflectionFarParentProperty->getValue($this->relation);
+            return $reflectionProperty->getValue($this->hasOneOrManyThrough);
         } catch (ReflectionException) {
             throw new ReflectionException(sprintf(
                 '%s проблема с получением farParent свойства',
-                $this->relation::class
+                $this->hasOneOrManyThrough::class
             ));
         }
     }
@@ -93,16 +92,16 @@ final readonly class HasOneOrManyThroughExporter implements RelationExporter
      */
     public function getModifyInfo(): array
     {
-        $farParent = $this->getEntity();
-        $farParentTable = $farParent->getTable();
-        $farParentKeyName = $farParent->getKeyName();
-        $farParentUniqueKeyName = $this->modelService->identifyUniqueIdColumn($farParent);
+        $model = $this->getEntity();
+        $farParentTable = $model->getTable();
+        $farParentKeyName = $model->getKeyName();
+        $farParentUniqueKeyName = $this->modelService->identifyUniqueIdColumn($model);
 
         if ($farParentUniqueKeyName === null) {
             // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
         }
 
-        $parent = $this->relation->getParent();
+        $parent = $this->hasOneOrManyThrough->getParent();
         $parentTable = $parent->getTable();
         $parentKeyName = $parent->getKeyName();
         $parentUniqueKeyName = $this->modelService->identifyUniqueIdColumn($parent);
@@ -111,7 +110,7 @@ final readonly class HasOneOrManyThroughExporter implements RelationExporter
             // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
         }
 
-        $related = $this->relation->getRelated();
+        $related = $this->hasOneOrManyThrough->getRelated();
         $relatedTable = $related->getTable();
         $relatedKeyName = $related->getKeyName();
         $relatedUniqueKeyName = $this->modelService->identifyUniqueIdColumn($related);
@@ -120,8 +119,8 @@ final readonly class HasOneOrManyThroughExporter implements RelationExporter
             // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
         }
 
-        $parentForeignKeyName = $this->relation->getFirstKeyName();
-        $relatedForeignKeyName = $this->relation->getForeignKeyName();
+        $parentForeignKeyName = $this->hasOneOrManyThrough->getFirstKeyName();
+        $relatedForeignKeyName = $this->hasOneOrManyThrough->getForeignKeyName();
 
         return [
             $farParentTable => [
@@ -130,11 +129,11 @@ final readonly class HasOneOrManyThroughExporter implements RelationExporter
                     'oldKeyName' => $farParentKeyName,
                     'keyName' => $farParentUniqueKeyName,
                     'isPrimaryKey' => true,
-                    'autoIncrement' => $this->tableRepository->isAutoincrementColumn(
+                    'autoIncrement' => $this->tableService->isAutoincrementColumn(
                         $farParentTable,
                         $farParentKeyName
                     ),
-                    'nullable' => $this->tableRepository->isNullableColumn(
+                    'nullable' => $this->tableService->isNullableColumn(
                         $farParentTable,
                         $farParentKeyName
                     ),
@@ -146,11 +145,11 @@ final readonly class HasOneOrManyThroughExporter implements RelationExporter
                     'oldKeyName' => $parentKeyName,
                     'keyName' => $parentUniqueKeyName,
                     'isPrimaryKey' => true,
-                    'autoIncrement' => $this->tableRepository->isAutoincrementColumn(
+                    'autoIncrement' => $this->tableService->isAutoincrementColumn(
                         $parentTable,
                         $parentKeyName
                     ),
-                    'nullable' => $this->tableRepository->isNullableColumn(
+                    'nullable' => $this->tableService->isNullableColumn(
                         $parentTable,
                         $parentKeyName
                     ),
@@ -159,7 +158,7 @@ final readonly class HasOneOrManyThroughExporter implements RelationExporter
                     'table' => $farParentTable,
                     'oldKeyName' => $farParentKeyName,
                     'keyName' => $farParentUniqueKeyName,
-                    'nullable' => $this->tableRepository->isNullableColumn(
+                    'nullable' => $this->tableService->isNullableColumn(
                         $parentTable,
                         $parentForeignKeyName
                     ),
@@ -171,11 +170,11 @@ final readonly class HasOneOrManyThroughExporter implements RelationExporter
                     'oldKeyName' => $relatedKeyName,
                     'keyName' => $relatedUniqueKeyName,
                     'isPrimaryKey' => true,
-                    'autoIncrement' => $this->tableRepository->isAutoincrementColumn(
+                    'autoIncrement' => $this->tableService->isAutoincrementColumn(
                         $relatedTable,
                         $relatedKeyName
                     ),
-                    'nullable' => $this->tableRepository->isNullableColumn(
+                    'nullable' => $this->tableService->isNullableColumn(
                         $relatedTable,
                         $relatedKeyName
                     ),
@@ -184,7 +183,7 @@ final readonly class HasOneOrManyThroughExporter implements RelationExporter
                     'table' => $parentTable,
                     'oldKeyName' => $parentKeyName,
                     'keyName' => $parentUniqueKeyName,
-                    'nullable' => $this->tableRepository->isNullableColumn(
+                    'nullable' => $this->tableService->isNullableColumn(
                         $relatedTable,
                         $relatedForeignKeyName
                     ),

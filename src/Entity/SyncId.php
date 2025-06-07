@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cat4year\DataMigrator\Entity;
 
 use Illuminate\Contracts\Support\Arrayable;
@@ -15,9 +17,7 @@ final readonly class SyncId implements Arrayable, JsonSerializable
         private array $columns,
     )
     {
-        if (empty($columns)) {
-            throw new InvalidArgumentException('SyncId cannot be empty.');
-        }
+        throw_if($columns === [], new InvalidArgumentException('SyncId cannot be empty.'));
 
         $this->hash = self::makeHash($columns);
     }
@@ -27,10 +27,8 @@ final readonly class SyncId implements Arrayable, JsonSerializable
         $result = [];
 
         foreach ($this->columns as $column) {
-            if (!isset($values[$column])) {
-                //tra(test: $values, cc: $column)->context(filename: 'test')->stackTrace();
-                throw new \LogicException('Column not found in values');
-            }
+            //tra(test: $values, cc: $column)->context(filename: 'test')->stackTrace();
+            throw_unless(isset($values[$column]), new \LogicException('Column not found in values'));
 
             $result[] = $values[$column];
         }
@@ -43,10 +41,8 @@ final readonly class SyncId implements Arrayable, JsonSerializable
         $result = [];
 
         foreach ($this->columns as $column) {
-            if (!isset($values[$column])) {
-                //tra(test: $values, cc: $column)->context(filename: 'test')->stackTrace();
-                throw new \LogicException('Column not found in values');
-            }
+            //tra(test: $values, cc: $column)->context(filename: 'test')->stackTrace();
+            throw_unless(isset($values[$column]), new \LogicException('Column not found in values'));
 
             $result[] = $values[$column];
         }
@@ -86,6 +82,6 @@ final readonly class SyncId implements Arrayable, JsonSerializable
 
     public function jsonSerialize(): array
     {
-        return $this->toArray();
+        return $this->columns;
     }
 }

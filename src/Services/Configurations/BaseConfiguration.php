@@ -15,8 +15,8 @@ final readonly class BaseConfiguration implements DataMigratorConfiguration
             ->setIds($ids);
     }
 
-    public function update(ExportConfigurator $configurator): ExportConfigurator
+    public function update(ExportConfigurator $exportConfigurator): ExportConfigurator
     {
-        return $configurator;
+        return $exportConfigurator;
     }
 }

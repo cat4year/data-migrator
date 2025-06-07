@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export;
 
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
@@ -9,8 +11,7 @@ final readonly class ExportSyncIdAttacher
 {
 
     public function __construct(
-        private TableService $tableService,
-        private SyncIdState $state,
+        private SyncIdState $syncIdState,
     ) {}
 
     public function attachSyncIds(array $exportData): array
@@ -19,7 +20,7 @@ final readonly class ExportSyncIdAttacher
 
         foreach ($exportData as $tableName => $tableData) {
             $result[$tableName] = $tableData;
-            $result[$tableName]['syncId'] = $this->state->tableSyncId($tableName);
+            $result[$tableName]['syncId'] = $this->syncIdState->tableSyncId($tableName);
         }
 
         return $result;

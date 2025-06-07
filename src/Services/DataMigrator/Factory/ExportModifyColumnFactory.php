@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cat4year\DataMigrator\Services\DataMigrator\Factory;
 
 use Cat4year\DataMigrator\Entity\ExportModifyColumn;

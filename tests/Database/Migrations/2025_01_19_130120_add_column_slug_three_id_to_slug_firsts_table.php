@@ -13,8 +13,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('slug_firsts', static function (Blueprint $table): void {
-            $table->foreignId('slug_three_id')
+        Schema::table('slug_firsts', static function (Blueprint $blueprint): void {
+            $blueprint->foreignId('slug_three_id')
                 ->nullable()
                 ->constrained('slug_threes');
         });
@@ -25,8 +25,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('slug_firsts', static function (Blueprint $table): void {
-            $table->dropColumn('slug_three_id');
+        Schema::table('slug_firsts', static function (Blueprint $blueprint): void {
+            $blueprint->dropColumn('slug_three_id');
         });
     }
 };

@@ -44,10 +44,10 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
     public static function provide_collect_belongs_to_relations(): array
     {
         return [
-            'makeModifyInfo belongsTo' => [static function () {
+            'makeModifyInfo belongsTo' => [static function (): array {
                 $relationName = 'slugThree';
-                $relationModel = SlugThreeFactory::new()->makeOne(['id' => 1, 'slug_second_id' => null]);
-                $slugFirst = SlugFirstFactory::new()->makeOne(['slug_three_id' => $relationModel->id])->setRelation($relationName, $relationModel);
+                $slugThree = SlugThreeFactory::new()->makeOne(['id' => 1, 'slug_second_id' => null]);
+                $slugFirst = SlugFirstFactory::new()->makeOne(['slug_three_id' => $slugThree->id])->setRelation($relationName, $slugThree);
                 $slugFirst2 = SlugFirstFactory::new()->makeOne(['slug_three_id' => null]);
 
                 $entities = [
@@ -108,7 +108,7 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
     public static function provide_collect_morph_one_relations(): array
     {
         return [
-            'makeModifyInfo morphOne' => [static function () {
+            'makeModifyInfo morphOne' => [static function (): array {
                 $morphOneRelationName = 'slugFours';
 
                 $slugFirst = SlugFirstFactory::new()->makeOne(['slug_three_id' => null]);
@@ -178,7 +178,7 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
                     ],
                 ];
             }],
-            'makeModifyInfo morphTo' => [static function () {
+            'makeModifyInfo morphTo' => [static function (): array {
                 $relationName = 'slugFourable';
 
                 $slugFirst = SlugFirstFactory::new()->makeOne(['slug_three_id' => null]);
@@ -256,7 +256,7 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
     {
         return [
             'makeModifyInfo morphToMany' => [
-                static function () {
+                static function (): array {
                     $morphToManyRelation = 'slugSecondables';
 
                     $slugFirst = SlugFirstFactory::new()->makeOne(['slug_three_id' => null]);

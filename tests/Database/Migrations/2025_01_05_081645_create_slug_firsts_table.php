@@ -10,14 +10,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('slug_firsts', static function (Blueprint $table): void {
-            $table->id();
-            $table->string('slug')->unique();
-            $table->boolean('bool_test')->default(false);
-            $table->timestamp('timestamp_test')->nullable();
-            $table->string('string_test')->nullable();
-            $table->integer('int_test')->nullable();
-            $table->timestamps();
+        Schema::create('slug_firsts', static function (Blueprint $blueprint): void {
+            $blueprint->id();
+            $blueprint->string('slug')->unique();
+            $blueprint->boolean('bool_test')->default(false);
+            $blueprint->timestamp('timestamp_test')->nullable();
+            $blueprint->string('string_test')->nullable();
+            $blueprint->integer('int_test')->nullable();
+            $blueprint->timestamps();
         });
     }
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cat4year\DataMigrator\Entity;
 
 use Illuminate\Contracts\Support\Arrayable;
@@ -11,7 +13,7 @@ final readonly class ExportModifyForeignColumn implements ExportModifyColumn, Ar
         private string $tableName,
         private string $keyName,
         private string $foreignTableName,
-        private SyncId $foreignUniqueKeyName,
+        private SyncId $syncId,
         private string $foreignOldKeyName,
         private bool $nullable,
         private bool $autoincrement = false,
@@ -42,7 +44,7 @@ final readonly class ExportModifyForeignColumn implements ExportModifyColumn, Ar
 
     public function getSourceUniqueKeyName(): SyncId
     {
-        return $this->foreignUniqueKeyName;
+        return $this->syncId;
     }
 
     public function isNullable(): bool
@@ -80,7 +82,7 @@ final readonly class ExportModifyForeignColumn implements ExportModifyColumn, Ar
             'tableName' => $this->tableName,
             'keyName' => $this->keyName,
             'foreignTableName' => $this->foreignTableName,
-            'foreignUniqueKeyName' => $this->foreignUniqueKeyName,
+            'foreignUniqueKeyName' => $this->syncId,
             'foreignOldKeyName' => $this->foreignOldKeyName,
             'nullable' => $this->nullable,
             'autoincrement' => $this->autoincrement,

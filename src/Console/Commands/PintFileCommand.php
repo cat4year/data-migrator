@@ -26,8 +26,8 @@ final class PintFileCommand extends Command
         try {
             $process->mustRun();
             $this->info($process->getOutput());
-        } catch (ProcessFailedException $e) {
-            $this->error($e->getMessage());
+        } catch (ProcessFailedException $processFailedException) {
+            $this->error($processFailedException->getMessage());
         }
     }
 }

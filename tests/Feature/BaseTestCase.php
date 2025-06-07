@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigratorTests\Feature;
 
+use Illuminate\Contracts\Config\Repository;
 use Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables;
 use Orchestra\Testbench\Concerns\WithWorkbench;
 use Orchestra\Testbench\TestCase;
@@ -17,7 +18,7 @@ abstract class BaseTestCase extends TestCase
     protected function getEnvironmentSetUp($app): void
     {
         $app->useStoragePath(realpath(__DIR__.'/../../storage'));
-        $app['config']->set('filesystems.disks.public.root', app()->storagePath('/app/public'));
+        $app->make(Repository::class)->set('filesystems.disks.public.root', app()->storagePath('/app/public'));
 
         $app->useEnvironmentPath(__DIR__.'/../../workbench/.env.testing');
         $app->bootstrapWith([LoadEnvironmentVariables::class]);

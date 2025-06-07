@@ -15,7 +15,7 @@ use function Cat4year\DataMigrator\Helpers\var_pretty_export;
 final readonly class PhpMigrationDataSourceFormat implements MigrationDataSourceFormat
 {
     public function __construct(
-        private Filesystem $files,
+        private Filesystem $filesystem,
         private ArrayToPhp $arrayToPhp,
     ) {
     }
@@ -29,8 +29,8 @@ final readonly class PhpMigrationDataSourceFormat implements MigrationDataSource
     {
         $result = $this->prepareForSave($data);
 
-        $this->files->ensureDirectoryExists(dirname($path));
-        $this->files->put($path, $result);
+        $this->filesystem->ensureDirectoryExists(dirname($path));
+        $this->filesystem->put($path, $result);
     }
 
     /**
@@ -40,9 +40,7 @@ final readonly class PhpMigrationDataSourceFormat implements MigrationDataSource
     {
         $data = require $resource;
 
-        if (! isset($data)) {
-            throw new RuntimeException('Variable $data not found on export file');
-        }
+        throw_unless(isset($data), new RuntimeException('Variable $data not found on export file'));
 
         return $data;
     }

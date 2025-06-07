@@ -13,11 +13,11 @@ use function Cat4year\DataMigrator\Helpers\var_pretty_export;
 
 final readonly class Migrator
 {
-    private MigratorCreator $creator;
+    private MigratorCreator $migratorCreator;
 
     public function __construct()
     {
-        $this->creator = app('migration-data.creator');
+        $this->migratorCreator = app('migration-data.creator');
     }
 
     /**
@@ -31,25 +31,23 @@ final readonly class Migrator
         ?string $modelClass = null,
         ?array $ids = null
     ): string {
-        if (! class_exists($configClass) || ! (app($configClass) instanceof DataMigratorConfiguration)) {
-            throw new RuntimeException('Migration class not found or not instance of Model');
-        }
+        throw_if(! class_exists($configClass) || ! (app($configClass) instanceof DataMigratorConfiguration), new RuntimeException('Migration class not found or not instance of Model'));
 
-        $configMaker = app($configClass);
-        assert($configMaker instanceof DataMigratorConfiguration);
-        $configurator = $configMaker->make();
+        $dataMigratorConfiguration = app($configClass);
+        assert($dataMigratorConfiguration instanceof DataMigratorConfiguration);
+        $exportConfigurator = $dataMigratorConfiguration->make();
 
-        $configurator->setDirectoryPath($path)
+        $exportConfigurator->setDirectoryPath($path)
             ->setIds($ids ?? [])
             ->setFileName($name);
 
-        $exporter = Exporter::create(app($modelClass), $configurator);
+        $exporter = Exporter::create(app($modelClass), $exportConfigurator);
         $exportData = $exporter->exportData();
 
-        $fullPath = $configurator->makeSourceFullPath();
-        $preparedExportData = $configurator->getSourceFormat()->prepareForMigration($exportData); //for xml will need add
-        $this->creator->createData(
-            $configurator->getFileName(),
+        $fullPath = $exportConfigurator->makeSourceFullPath();
+        $preparedExportData = $exportConfigurator->getSourceFormat()->prepareForMigration($exportData); //for xml will need add
+        $this->migratorCreator->createData(
+            $exportConfigurator->getFileName(),
             dirname($fullPath),
             $preparedExportData
         );

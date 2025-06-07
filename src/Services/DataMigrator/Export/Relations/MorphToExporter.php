@@ -17,9 +17,9 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 final readonly class MorphToExporter implements RelationExporter
 {
     public function __construct(
-        private MorphTo $relation,
+        private MorphTo $morphTo,
         private ModelService $modelService,
-        private TableService $tableRepository,
+        private TableService $tableService,
         private ?array $tableData = null,
     ) {
     }
@@ -27,7 +27,7 @@ final readonly class MorphToExporter implements RelationExporter
     /**
      * @throws BindingResolutionException
      */
-    public static function create(MorphTo $relation, ?array $tableData): self
+    public static function create(MorphTo $morphTo, ?array $tableData): self
     {
         return app()->makeWith(self::class, compact('relation', 'tableData'));
     }
@@ -36,7 +36,7 @@ final readonly class MorphToExporter implements RelationExporter
     {
         $items = $this->getParentItems($foreignIds);
         $ids = $this->getUsedIds($items);
-        $table = $this->relation->getModel()->getTable();
+        $table = $this->morphTo->getModel()->getTable();
 
         $foreignTables = $this->getForeignTablesExportData($items);
 
@@ -52,14 +52,14 @@ final readonly class MorphToExporter implements RelationExporter
 
     private function getUsedIds(Collection $items): array
     {
-        $foreignKey = $this->relation->getForeignKeyName();
+        $foreignKey = $this->morphTo->getForeignKeyName();
 
         return $items->pluck($foreignKey)->toArray();
     }
 
     private function getEntity(): Model
     {
-        return $this->relation->getRelated();
+        return $this->morphTo->getRelated();
     }
 
     private function getKeyName(): string
@@ -69,16 +69,16 @@ final readonly class MorphToExporter implements RelationExporter
 
     public function getModifyInfo(): array
     {
-        $parent = $this->relation->getParent();
-        $parentTable = $parent->getTable();
-        $parentKeyName = $parent->getKeyName();
-        $uniqueParentKeyName = $this->modelService->identifyUniqueIdColumn($parent);
+        $model = $this->morphTo->getParent();
+        $parentTable = $model->getTable();
+        $parentKeyName = $model->getKeyName();
+        $uniqueParentKeyName = $this->modelService->identifyUniqueIdColumn($model);
 
-        $related = $this->relation->getRelated();
+        $related = $this->morphTo->getRelated();
         $uniqueRelatedKeyName = $this->modelService->identifyUniqueIdColumn($related);
 
         $uniqueKeyName = $uniqueParentKeyName;
-        $foreignKeyName = $this->relation->getForeignKeyName();
+        $foreignKeyName = $this->morphTo->getForeignKeyName();
 
         if ($uniqueKeyName === null || $uniqueRelatedKeyName === null) {
             // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
@@ -91,49 +91,47 @@ final readonly class MorphToExporter implements RelationExporter
 
         $oldKeyNames = array_column($foreignClassesColumnsData, 'oldKeyName', 'table');
         $keyNames = array_column($foreignClassesColumnsData, 'keyName', 'table');
-        $syncKeyNames = array_map(static fn(string $keyName) => new SyncId([$keyName]), $keyNames);
+        $syncKeyNames = array_map(static fn(string $keyName): SyncId => new SyncId([$keyName]), $keyNames);
 
-        $parentTableForeignColumn = new ExportModifyMorphColumn(
-            morphType: $this->relation->getMorphType(),
+        $exportModifyMorphColumn = new ExportModifyMorphColumn(
+            morphType: $this->morphTo->getMorphType(),
             tableName: $parentTable,
             keyName: $foreignKeyName,
             sourceKeyNames: $syncKeyNames,
             sourceOldKeyNames: $oldKeyNames,
-            nullable: $this->tableRepository->isNullableColumn($parentTable, $foreignKeyName),
-            autoincrement: $this->tableRepository->isAutoincrementColumn($parentTable, $foreignKeyName),
+            nullable: $this->tableService->isNullableColumn($parentTable, $foreignKeyName),
+            autoincrement: $this->tableService->isAutoincrementColumn($parentTable, $foreignKeyName),
         );
 
-        $parentSyncKey = new SyncId([$uniqueParentKeyName]);
+        $syncId = new SyncId([$uniqueParentKeyName]);
         $parentTableColumn = new ExportModifySimpleColumn(
             tableName: $parentTable,
             keyName: $parentKeyName,
-            uniqueKeyName: $parentSyncKey,
-            nullable: $this->tableRepository->isNullableColumn($parentTable, $parentKeyName),
-            autoincrement: $this->tableRepository->isAutoincrementColumn($parentTable, $parentKeyName),
+            uniqueKeyName: $syncId,
+            nullable: $this->tableService->isNullableColumn($parentTable, $parentKeyName),
+            autoincrement: $this->tableService->isAutoincrementColumn($parentTable, $parentKeyName),
         );
 
         $foreignClassesModifyInfoTablesColumns = [];
-        if (!empty($foreignClassesModifyInfo)) {
-            foreach ($foreignClassesModifyInfo as $tableName => $tableData) {
-                foreach ($tableData as $columnData) {
-                    //todo: достаточно ли только simple? может там foreign или морф будет? может ли?
-                    $column = new ExportModifySimpleColumn(
-                        tableName: $columnData['table'], //todo: почему это в entity массив, а не объект?
-                        keyName: $columnData['oldKeyName'],
-                        uniqueKeyName: new SyncId([$columnData['keyName']]),
-                        nullable: $columnData['nullable'],
-                        autoincrement: $columnData['autoIncrement'],
-                        isPrimaryKey: $columnData['isPrimaryKey'],
-                    );
+        foreach ($foreignClassesModifyInfo as $tableName => $tableData) {
+            foreach ($tableData as $columnData) {
+                //todo: достаточно ли только simple? может там foreign или морф будет? может ли?
+                $column = new ExportModifySimpleColumn(
+                    tableName: $columnData['table'], //todo: почему это в entity массив, а не объект?
+                    keyName: $columnData['oldKeyName'],
+                    uniqueKeyName: new SyncId([$columnData['keyName']]),
+                    nullable: $columnData['nullable'],
+                    autoincrement: $columnData['autoIncrement'],
+                    isPrimaryKey: $columnData['isPrimaryKey'],
+                );
 
-                    $foreignClassesModifyInfoTablesColumns[$tableName][$column->getKeyName()] = $column;
-                }
+                $foreignClassesModifyInfoTablesColumns[$tableName][$column->getKeyName()] = $column;
             }
         }
 
         return [
             $parentTable => [
-                $parentTableForeignColumn->getKeyName() => $parentTableForeignColumn,
+                $exportModifyMorphColumn->getKeyName() => $exportModifyMorphColumn,
                 $parentTableColumn->getKeyName() => $parentTableColumn,
             ],
             ...$foreignClassesModifyInfoTablesColumns,//todo: нужно ли?
@@ -142,20 +140,20 @@ final readonly class MorphToExporter implements RelationExporter
 
     private function getUsedForeignClasses(array $items): array
     {
-        $morphType = $this->relation->getMorphType();
+        $morphType = $this->morphTo->getMorphType();
 
         return array_column($items, $morphType);
     }
 
     private function getParentItems(array $ids): Collection
     {
-        $idKey = $this->relation->getParent()->getKeyName();
-        $foreignKey = $this->relation->getForeignKeyName();
+        $idKey = $this->morphTo->getParent()->getKeyName();
+        $foreignKey = $this->morphTo->getForeignKeyName();
 
-        return $this->relation->getParent()::query()
+        return $this->morphTo->getParent()::query()
             ->select()
             ->whereNotNull($foreignKey)
-            ->whereNotNull($this->relation->getMorphType())
+            ->whereNotNull($this->morphTo->getMorphType())
             ->whereIn($idKey, $ids)
             ->get();
     }
@@ -176,8 +174,8 @@ final readonly class MorphToExporter implements RelationExporter
                     'oldKeyName' => $modelKeyName,
                     'keyName' => $uniqueModelKeyName,
                     'isPrimaryKey' => true,
-                    'autoIncrement' => $this->tableRepository->isAutoincrementColumn($tableName, $modelKeyName),
-                    'nullable' => $this->tableRepository->isNullableColumn($tableName, $modelKeyName),
+                    'autoIncrement' => $this->tableService->isAutoincrementColumn($tableName, $modelKeyName),
+                    'nullable' => $this->tableService->isNullableColumn($tableName, $modelKeyName),
                 ],
             ];
         }
@@ -188,8 +186,8 @@ final readonly class MorphToExporter implements RelationExporter
     private function getForeignTablesExportData(Collection $items): array
     {
         $result = [];
-        $morphType = $this->relation->getMorphType();
-        $foreignKey = $this->relation->getForeignKeyName();
+        $morphType = $this->morphTo->getMorphType();
+        $foreignKey = $this->morphTo->getForeignKeyName();
         foreach ($items as $item) {
             $foreignModelClass = $item->getAttribute($morphType);
             $foreignModelId = $item->getAttribute($foreignKey);

@@ -14,13 +14,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('slug_secondables', static function (Blueprint $table): void {
-            $table->id();
-            $table->foreignIdFor(SlugSecond::class)
+        Schema::create('slug_secondables', static function (Blueprint $blueprint): void {
+            $blueprint->id();
+            $blueprint->foreignIdFor(SlugSecond::class)
                 ->constrained()
                 ->cascadeOnDelete()
                 ->cascadeOnUpdate();
-            $table->morphs('slug_secondable');
+            $blueprint->morphs('slug_secondable');
         });
     }
 

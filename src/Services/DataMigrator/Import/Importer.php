@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Import;
 
+use Illuminate\Support\Facades\DB;
 use Cat4year\DataMigrator\Entity\ExportModifyColumn;
 use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Entity\SyncId;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\CollectionMerger;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
-use DB;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Log;
@@ -23,7 +23,7 @@ final readonly class Importer
      * @param SupportCollection<string, SupportCollection> $existItemsByTable
      */
     public function __construct(
-        private ImportDataPreparer $preparer,
+        private ImportDataPreparer $importDataPreparer,
         private CollectionMerger $collectionMerger,
         private SupportCollection $existItemsByTable,
         private SupportCollection $fixColumnsLater,
@@ -51,27 +51,17 @@ final readonly class Importer
         $this->fixLaterNullableRelationFields($withRelationFields);
     }
 
-    private function collectExistData(array $data): void
-    {
-        foreach ($data as $tableName => $tableData) {
-            $this->tryReplaceSourceColumns($tableName, $tableData);
-            $items = $this->getExistsRequiredItemsFromDatabase($tableName, $tableData['syncId'], $tableData['items']);
-            $this->existItemsByTable->put($tableName, collect($items));
-        }
-    }
-
     /**
      * @param array<non-empty-string, ExportModifyColumn> $data
      * @return array<array<non-empty-string, ExportModifyColumn>, array<non-empty-string, ExportModifyColumn>>
      */
     private function splitDataByRelationFields(array $data): array
     {
-        return collect($data)->partition(fn($tableData) => isset($tableData['modifiedAttributes']) && $this->hasRelationFields($tableData['modifiedAttributes']))->toArray();
+        return collect($data)->partition(fn($tableData): bool => isset($tableData['modifiedAttributes']) && $this->hasRelationFields($tableData['modifiedAttributes']))->toArray();
     }
 
     /**
      * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
-     * @return bool
      */
     private function hasRelationFields(array $modifiedAttributes): bool
     {
@@ -90,7 +80,7 @@ final readonly class Importer
         foreach ($withoutAutoincrementData as $tableName => $tableData) {
             $syncId = $tableData['syncId'];
             //todo: нужно ли? Проверить
-            $itemsForSync = $this->preparer->beforeSyncWithDatabase(
+            $itemsForSync = $this->importDataPreparer->beforeSyncWithDatabase(
                 $tableName,
                 $tableData['items'],
                 $tableData['modifiedAttributes'],
@@ -109,7 +99,7 @@ final readonly class Importer
         foreach ($withRelationFields as $tableName => $tableData) {
             $syncId = $tableData['syncId'];
 
-            $preparedFieldsData = $this->preparer->itemsWithAutoincrementRelationFields(
+            $preparedFieldsData = $this->importDataPreparer->itemsWithAutoincrementRelationFields(
                 $tableData,
                 $this->existItemsByTable,
                 $syncId
@@ -119,7 +109,7 @@ final readonly class Importer
 //            if($tableName === 'attachmentable'){
 //                dd($tableData, $this->fixColumnsLater);
 //            }
-            $itemsForSync = $this->preparer->beforeSyncWithDatabase(
+            $itemsForSync = $this->importDataPreparer->beforeSyncWithDatabase(
                 $tableName,
                 $preparedItems,
                 $tableData['modifiedAttributes'],
@@ -127,6 +117,7 @@ final readonly class Importer
            // dd($itemsForSync, $this->fixColumnsLater);
             $this->syncWithDatabase($tableName, $syncId, $itemsForSync);
         }
+
        // dd($this->fixColumnsLater);
     }
 
@@ -139,34 +130,23 @@ final readonly class Importer
         //пока реализовываем вариант где syncId всегда присутствует и он уникальный - updateOrInsert
         //todo: реализовать проверку на уникальность при экспорте в отдельное поле добавлять
         //todo: если будем поддерживать отсутствие syncId - то upsert
-        try {
+        foreach ($itemsData as $itemData) {
+            $query = DB::table($tableName);
+            //dd($item, $syncId);
+            $syncIdWithValues = [];
+            $attributesItemOnlyForUpdate = $itemData;
+            foreach ($syncId as $syncColumn) {
+                $syncIdWithValues[$syncColumn] = $itemData[$syncColumn];
+                unset($attributesItemOnlyForUpdate[$syncColumn]);
+            }
 
-            foreach ($itemsData as $item) {
-                $query = DB::table($tableName);
-                //dd($item, $syncId);
-                $syncIdWithValues = [];
-                $attributesItemOnlyForUpdate = $item;
-                foreach ($syncId as $syncColumn) {
-                    $syncIdWithValues[$syncColumn] = $item[$syncColumn];
-                    unset($attributesItemOnlyForUpdate[$syncColumn]);
-                }
-               // $queryBySyncId = $this->withConditionsBySyncIdForUpdateItem($query, $syncId, $item);
+           // $queryBySyncId = $this->withConditionsBySyncIdForUpdateItem($query, $syncId, $item);
 
 //                            if($tableName === 'attachmentable'){
 //                dd($syncIdWithValues, $attributesItemOnlyForUpdate);
 //            }
-                //dd($syncIdWithValues, $attributesItemOnlyForUpdate);
-                $query->updateOrInsert($syncIdWithValues, $attributesItemOnlyForUpdate);
-            }
-        } catch (Throwable $e) {
-            throw $e;
-            Log::error('Ошибка при обновлении', [
-                $tableName,
-                $itemsData,
-                $item,
-                $syncId,
-                $e->getMessage(),
-            ]);
+            //dd($syncIdWithValues, $attributesItemOnlyForUpdate);
+            $query->updateOrInsert($syncIdWithValues, $attributesItemOnlyForUpdate);
         }
 
         $items = $this->getExistsRequiredItemsFromDatabase($tableName, $syncId, $itemsData);
@@ -174,30 +154,12 @@ final readonly class Importer
         $this->collectionMerger->putWithMerge($this->existItemsByTable, $tableName, $latestExistItemsByTable);
     }
 
-    private function withConditionsBySyncIdForUpdateItem(Builder $query, array $keys, array $item): Builder
-    {
-
-        $query->where(function ($q) use ($query, $keys, $item) {
-            $q->orWhere(function ($subQuery) use ($query, $keys, $item) {
-                foreach ($keys as $key) {
-                    if(!array_key_exists($key, $item)){
-                        dd($query, $key, $item, $keys);
-                    }
-                    $subQuery->where($key, $item[$key]);
-                }
-            });
-        });
-        dd($keys, $item, $query);
-
-        return $query;
-    }
-
     private function getExistsRequiredItemsFromDatabase(string $tableName, array $syncId, array $values): array
     {
-        $query = DB::table($tableName);
+        $builder = DB::table($tableName);
 
 
-        $queryBySyncId = $this->withConditionsBySyncIdForGetExistItems($query, $syncId, $values);
+        $queryBySyncId = $this->withConditionsBySyncIdForGetExistItems($builder, $syncId, $values);
 //        if($tableName === 'attachmentable'){
 //            dd($tableName, $syncId, $values,$queryBySyncId, $this->existItemsByTable);
 //        }
@@ -205,29 +167,29 @@ final readonly class Importer
 
         $syncId = new SyncId($syncId);
 
-        return $queryBySyncId->get()->map(static fn(stdClass $item) => (array)$item)
-            ->keyBy(static fn(array $item) => $syncId->keyStringByValues($item))
+        return $queryBySyncId->get()->map(static fn(stdClass $item): array => (array)$item)
+            ->keyBy(static fn(array $item): string => $syncId->keyStringByValues($item))
             ->toArray();
     }
 
     /**
      * @todo: не совсем корректное условия, могут выбраться не с конкретным набором 3х колонок, а каждая из колонок случайно попала в значения разных наборов.
      */
-    private function withConditionsBySyncIdForGetExistItems(Builder $query, array $keys, array $items): Builder
+    private function withConditionsBySyncIdForGetExistItems(Builder $builder, array $keys, array $items): Builder
     {
 
-        $query->where(function ($q) use ($keys, $items) {
-            foreach($items as $hashSyncKey => $itemAttributes){
+        $builder->where(function ($q) use ($keys, $items): void {
+            foreach($items as $item){
 
-                $q->orWhere(function ($subQuery) use ($keys, $itemAttributes) {
+                $q->orWhere(function ($subQuery) use ($keys, $item): void {
                     foreach ($keys as $key) {
-                        $subQuery->where($key, $itemAttributes[$key]);
+                        $subQuery->where($key, $item[$key]);
                     }
                 });
             }
         });
 
-        return $query;
+        return $builder;
     }
 
     private function fixLaterNullableRelationFields(array $data): void
@@ -255,7 +217,7 @@ final readonly class Importer
                 }
             }
 
-            $modifiedItems = $this->preparer->modifyItemsAttributes(
+            $modifiedItems = $this->importDataPreparer->modifyItemsAttributes(
                 $tableData['items'],
                 $attributesForFixKeyName,
                 $tableData['modifiedAttributes'],
@@ -269,22 +231,23 @@ final readonly class Importer
 
             $syncIdColumns = $tableData['syncId'];
             $syncId = new SyncId($syncIdColumns);
-            $modifiedItemsOnlyFixLaterFields = $this->preparer->modifyAndSaveOnlyFixLaterFields(
+            $modifiedItemsOnlyFixLaterFields = $this->importDataPreparer->modifyAndSaveOnlyFixLaterFields(
                 $modifiedItems,
                 $attributesForFixKeyName,
                 $syncId
             );
 
 
-            foreach ($modifiedItemsOnlyFixLaterFields as $itemLaterAndSyncFields) {
+            foreach ($modifiedItemsOnlyFixLaterFields as $modifiedItemOnlyFixLaterField) {
                 $query = DB::table($tableName);
                 $syncIdWithValues = [];
-                $attributesItemOnlyForUpdate = $itemLaterAndSyncFields;
+                $attributesItemOnlyForUpdate = $modifiedItemOnlyFixLaterField;
              //   dd($syncIdColumns, $attributesItemOnlyForUpdate, $this->existItemsByTable->get($tableName),$modifiedItems, $attributesForFixKeyName);
-                foreach ($syncIdColumns as $syncColumn) {
-                    $syncIdWithValues[$syncColumn] = $itemLaterAndSyncFields[$syncColumn];
-                    unset($attributesItemOnlyForUpdate[$syncColumn]);
+                foreach ($syncIdColumns as $syncIdColumn) {
+                    $syncIdWithValues[$syncIdColumn] = $modifiedItemOnlyFixLaterField[$syncIdColumn];
+                    unset($attributesItemOnlyForUpdate[$syncIdColumn]);
                 }
+
                 $query->updateOrInsert($syncIdWithValues, $attributesItemOnlyForUpdate);
                 //$queryBySyncId = $this->withConditionsBySyncIdForUpdateItem($query, $syncId, $itemLaterAndSyncFields);
                 //$queryBySyncId->update($itemLaterAndSyncFields);
@@ -300,45 +263,7 @@ final readonly class Importer
     private function getPrimaryKeyColumn(array $modifiedAttributes): ?ExportModifySimpleColumn
     {
         return collect($modifiedAttributes)
-            ->first(static fn(ExportModifyColumn $column) => $column instanceof ExportModifySimpleColumn && $column->isPrimaryKey());
-    }
-
-    private function tryReplaceSourceColumns(int|string $tableName, array $tableData)
-    {
-        if ($this->existItemsByTable->isEmpty()) {
-            return $tableData;
-        }
-
-        try{
-            /** @var ExportModifyColumn $modifyColumn */
-            foreach($tableData['modifiedAttributes'] as $columnKey => $modifyColumn){
-                if ($modifyColumn instanceof ExportModifyMorphColumn) {
-                    $sourceTables = $modifyColumn->getSourceTableNames();
-                    foreach ($sourceTables as $sourceTableName => $keys) {
-                        $this->tryReplaceSourceColumn(
-                            $sourceTableName,
-                            $tableData['items'],
-                            $keys,
-                            $modifyColumn->getSourceKeyNameByTable($sourceTableName),
-                            $columnKey
-                        );
-                    }
-
-                    continue;
-                }
-
-                $sourceTableName = $modifyColumn->getSourceTableName();
-                $this->tryReplaceSourceColumn(
-                    $sourceTableName,
-                    $tableData['items'],
-                    $modifyColumn->getSourceUniqueKeyName()->toArray(),
-                    $modifyColumn->getSourceKeyName(),
-                    $columnKey
-                );
-            }
-        } catch (Throwable) {
-
-        }
+            ->first(static fn(ExportModifyColumn $exportModifyColumn): bool => $exportModifyColumn instanceof ExportModifySimpleColumn && $exportModifyColumn->isPrimaryKey());
     }
 
     public function tryReplaceSourceColumn(
@@ -347,16 +272,14 @@ final readonly class Importer
         array $syncKeys,
         string $sourcePrimaryKey,
         string $modifyColumn
-    ) {
+    ): void {
 
         //dd($sourceTableName, $syncId, $items);
-        if (!$this->existItemsByTable->has($sourceTableName)) {
-           throw new \RuntimeException();
-        }
+        throw_unless($this->existItemsByTable->has($sourceTableName), new \RuntimeException());
 
         $existItems = $this->existItemsByTable->get($sourceTableName);
 
-        $syncId = new SyncId($syncKeys);
+        new SyncId($syncKeys);
         //обновляем те элементы которые можем, остальные потом
         foreach($items as &$item){
            // $columnValues = explode('|', $item[$modifyColumn]);
@@ -369,6 +292,7 @@ final readonly class Importer
 
             $item[$modifyColumn] = $existItems->get($item[$modifyColumn])[$sourcePrimaryKey];
         }
+
         unset($item);
     }
 

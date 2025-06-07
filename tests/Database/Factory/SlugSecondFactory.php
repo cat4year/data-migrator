@@ -24,8 +24,8 @@ final class SlugSecondFactory extends Factory
     public function definition(): array
     {
         return [
-            'slug' => Str::slug($this->faker->sentence($this->faker->numberBetween(1, 3)), '-'),
-            'name' => $this->faker->sentence(),
+            'slug' => Str::slug(fake()->sentence(fake()->numberBetween(1, 3)), '-'),
+            'name' => fake()->sentence(),
             'slug_first_id' => SlugFirst::factory(),
         ];
     }

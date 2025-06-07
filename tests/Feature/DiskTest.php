@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigratorTests\Feature;
 
+use Illuminate\Config\Repository;
+use Illuminate\Support\Facades\Storage;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\MigrationDataSourceFormat;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\Php\PhpMigrationDataSourceFormat;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\Xml\XmlMigrationDataSourceFormat;
 use PHPUnit\Framework\Attributes\TestWith;
-use Storage;
 
 final class DiskTest extends BaseTestCase
 {
@@ -20,17 +21,17 @@ final class DiskTest extends BaseTestCase
     #[TestWith(['test/test.php', PhpMigrationDataSourceFormat::class])]
     public function test_save_file(string $path, string $sourceFormatClass): void
     {
-        $storage = Storage::fake('public');
-        $fullPath = $storage->path($path);
+        $filesystem = Storage::fake('public');
+        $fullPath = $filesystem->path($path);
         /** @var MigrationDataSourceFormat $sourceFormat */
         $sourceFormat = app($sourceFormatClass);
 
         $sourceFormat->save(['test' => true], $fullPath);
 
-        $this->assertTrue($storage->exists($path));
+        $this->assertTrue($filesystem->exists($path));
     }
 
-    public function test_get_attachment()
+    public function test_get_attachment(): void
     {
         $attachment = Storage::disk('testing')->get('avatars/5d11b2895cecbda580a9f667bd26a6389143c982.jpg');
 
@@ -40,8 +41,8 @@ final class DiskTest extends BaseTestCase
     #[\Override]
     protected function getEnvironmentSetUp($app): void
     {
-        $app['config']->set('filesystems.disks.testing.driver', 'local');
-        $app['config']->set('filesystems.disks.testing.root', realpath(__DIR__.'/../Resource/Files'));
+        $app->make(Repository::class)->set('filesystems.disks.testing.driver', 'local');
+        $app->make(Repository::class)->set('filesystems.disks.testing.root', realpath(__DIR__.'/../Resource/Files'));
     }
 
     #[\Override]

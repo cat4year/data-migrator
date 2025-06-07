@@ -4,24 +4,23 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export\Relations;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
 use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\ModelService;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
-use DB;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Schema;
 
 final readonly class MorphToManyExporter implements RelationExporter
 {
     public function __construct(
-        private MorphToMany $relation,
-        private ModelService $modelService,
-        private TableService $tableRepository,
+        private MorphToMany $morphToMany,
+        private TableService $tableService,
         private SyncIdState $syncIdState,
     ) {
     }
@@ -29,7 +28,7 @@ final readonly class MorphToManyExporter implements RelationExporter
     /**
      * @throws BindingResolutionException
      */
-    public static function create(MorphToMany $relation): self
+    public static function create(MorphToMany $morphToMany): self
     {
         return app()->makeWith(self::class, compact('relation'));
     }
@@ -38,14 +37,14 @@ final readonly class MorphToManyExporter implements RelationExporter
     {
         $pivotIdKeyName = $this->getPivotIdColumnKeyName();
         $pivotIds = $this->getPivotUsedIds($foreignIds, $pivotIdKeyName);
-        $relatedIdKeyName = $this->relation->getRelated()->getKeyName();
+        $relatedIdKeyName = $this->morphToMany->getRelated()->getKeyName();
 
-        $relatedTable = $this->relation->getRelated()->getTable();
-        $pivotTable = $this->relation->getTable();
-        $relatedPivotKeyName = $this->relation->getRelatedPivotKeyName();
+        $relatedTable = $this->morphToMany->getRelated()->getTable();
+        $pivotTable = $this->morphToMany->getTable();
+        $relatedPivotKeyName = $this->morphToMany->getRelatedPivotKeyName();
 
         $relatedIds = [];
-        if (! empty($pivotIds)) {
+        if ($pivotIds !== []) {
             $relatedIds = $this->getRelatedUsedIdsByPivot($pivotIds, $pivotIdKeyName, $relatedPivotKeyName);
         }
 
@@ -65,10 +64,10 @@ final readonly class MorphToManyExporter implements RelationExporter
 
     private function getRelatedUsedIdsByPivot(array $ids, string $pivotIdKeyName, string $relatedForeignKeyName): array
     {
-        return DB::table($this->relation->getTable())
+        return DB::table($this->morphToMany->getTable())
             ->select($relatedForeignKeyName)
             ->whereIn($pivotIdKeyName, $ids)
-            ->where($this->relation->getMorphType(), $this->relation->getParent()->getMorphClass())
+            ->where($this->morphToMany->getMorphType(), $this->morphToMany->getParent()->getMorphClass())
             ->get()
             ->pluck($relatedForeignKeyName)
             ->toArray();
@@ -76,7 +75,7 @@ final readonly class MorphToManyExporter implements RelationExporter
 
     private function getPivotIdColumnKeyName(bool $checkFalseAutoIncrement = false): string
     {
-        $columns = Schema::getColumns($this->relation->getTable());
+        $columns = Schema::getColumns($this->morphToMany->getTable());
         foreach ($columns as $column) {
             if ($column['nullable'] === false && (! $checkFalseAutoIncrement || $column['auto_increment'] === false)) {
                 return $column['name'];
@@ -88,11 +87,11 @@ final readonly class MorphToManyExporter implements RelationExporter
 
     private function getPivotUsedIds(array $ids, string $pivotIdKeyName): array
     {
-        $parentPivotKeyName = $this->relation->getForeignPivotKeyName();
+        $parentPivotKeyName = $this->morphToMany->getForeignPivotKeyName();
 
-        return DB::table($this->relation->getTable())
+        return DB::table($this->morphToMany->getTable())
             ->whereIn($parentPivotKeyName, $ids)
-            ->where($this->relation->getMorphType(), $this->relation->getParent()->getMorphClass())
+            ->where($this->morphToMany->getMorphType(), $this->morphToMany->getParent()->getMorphClass())
             ->get()
             ->pluck($pivotIdKeyName)
             ->toArray();
@@ -100,7 +99,7 @@ final readonly class MorphToManyExporter implements RelationExporter
 
     private function getEntity(): Model
     {
-        return $this->relation->getRelated();
+        return $this->morphToMany->getRelated();
     }
 
     private function getKeyName(): string
@@ -110,53 +109,53 @@ final readonly class MorphToManyExporter implements RelationExporter
 
     public function getModifyInfo(): array
     {
-        $parent = $this->relation->getParent();
-        $uniqueKeyName = $this->syncIdState->tableSyncId($parent->getTable());
-        $parentTable = $parent->getTable();
-        $parentKeyName = $parent->getKeyName();
+        $model = $this->morphToMany->getParent();
+        $syncId = $this->syncIdState->tableSyncId($model->getTable());
+        $parentTable = $model->getTable();
+        $parentKeyName = $model->getKeyName();
 
-        $related = $this->relation->getRelated();
+        $related = $this->morphToMany->getRelated();
         $relatedTable = $related->getTable();
         $relatedKeyName = $related->getKeyName();
         $uniqueRelatedKeyName = $this->syncIdState->tableSyncId($related->getTable());
 
-        $pivotTable = $this->relation->getTable();
-        $parentPivotKeyName = $this->relation->getForeignPivotKeyName();
-        $relatedPivotKeyName = $this->relation->getRelatedPivotKeyName();
+        $pivotTable = $this->morphToMany->getTable();
+        $parentPivotKeyName = $this->morphToMany->getForeignPivotKeyName();
+        $relatedPivotKeyName = $this->morphToMany->getRelatedPivotKeyName();
 
         $parentTableColumn = new ExportModifySimpleColumn(
             tableName: $parentTable,
             keyName: $parentKeyName,
-            uniqueKeyName: $uniqueKeyName,
-            nullable: $this->tableRepository->isNullableColumn($parentTable, $parentKeyName),
-            autoincrement: $this->tableRepository->isAutoincrementColumn($parentTable, $parentKeyName),
+            uniqueKeyName: $syncId,
+            nullable: $this->tableService->isNullableColumn($parentTable, $parentKeyName),
+            autoincrement: $this->tableService->isAutoincrementColumn($parentTable, $parentKeyName),
         );
 
         $relatedTableColumn = new ExportModifySimpleColumn(
             tableName: $relatedTable,
             keyName: $relatedKeyName,
             uniqueKeyName: $uniqueRelatedKeyName,
-            nullable: $this->tableRepository->isNullableColumn($relatedTable, $relatedKeyName),
-            autoincrement: $this->tableRepository->isAutoincrementColumn($relatedTable, $relatedKeyName),
+            nullable: $this->tableService->isNullableColumn($relatedTable, $relatedKeyName),
+            autoincrement: $this->tableService->isAutoincrementColumn($relatedTable, $relatedKeyName),
         );
 
-        $pivotParentMorphColumn = new ExportModifyMorphColumn(
-            morphType: $this->relation->getMorphType(),
+        $exportModifyMorphColumn = new ExportModifyMorphColumn(
+            morphType: $this->morphToMany->getMorphType(),
             tableName: $relatedTable,
-            keyName: $this->relation->getRelatedPivotKeyName(),//todo: вот тут то пупупу. Что делать? Ключ должен быть составным. Возможно должно быть nullable? Юзается ли?
-            sourceKeyNames: [$parentTable => $uniqueKeyName],
+            keyName: $this->morphToMany->getRelatedPivotKeyName(),//todo: вот тут то пупупу. Что делать? Ключ должен быть составным. Возможно должно быть nullable? Юзается ли?
+            sourceKeyNames: [$parentTable => $syncId],
             sourceOldKeyNames: [$parentTable => $parentKeyName],
-            nullable: $this->tableRepository->isNullableColumn($pivotTable, $parentPivotKeyName),
-            autoincrement: $this->tableRepository->isAutoincrementColumn($pivotTable, $parentPivotKeyName),
+            nullable: $this->tableService->isNullableColumn($pivotTable, $parentPivotKeyName),
+            autoincrement: $this->tableService->isAutoincrementColumn($pivotTable, $parentPivotKeyName),
         );
 
-        $pivotRelatedForeignColumn = new ExportModifyForeignColumn(
+        $exportModifyForeignColumn = new ExportModifyForeignColumn(
             tableName: $relatedTable,
             keyName: $relatedKeyName,
             foreignTableName: $relatedTable,
             foreignUniqueKeyName: $uniqueRelatedKeyName,
             foreignOldKeyName: $relatedKeyName,
-            nullable: $this->tableRepository->isNullableColumn($pivotTable, $relatedKeyName),
+            nullable: $this->tableService->isNullableColumn($pivotTable, $relatedKeyName),
         );
 
         return [
@@ -167,8 +166,8 @@ final readonly class MorphToManyExporter implements RelationExporter
                 $relatedKeyName => $relatedTableColumn,
             ],
             $pivotTable => [
-                $parentPivotKeyName => $pivotParentMorphColumn,
-                $relatedPivotKeyName => $pivotRelatedForeignColumn,
+                $parentPivotKeyName => $exportModifyMorphColumn,
+                $relatedPivotKeyName => $exportModifyForeignColumn,
             ],
         ];
     }

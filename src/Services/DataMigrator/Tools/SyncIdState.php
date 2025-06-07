@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cat4year\DataMigrator\Services\DataMigrator\Tools;
 
+use Illuminate\Database\Eloquent\Model;
 use Cat4year\DataMigrator\Entity\SyncId;
 use RuntimeException;
 
@@ -13,6 +16,7 @@ final class SyncIdState
      * @var array<string, list<string|list<string>>>
      */
     private array $potentialSyncIds = [];
+
     /**
      * @var array<string, SyncId>
      */
@@ -81,11 +85,9 @@ final class SyncIdState
             }
         }
 
-        if (empty($this->potentialSyncIds[$tableName])) {
-            throw new RuntimeException(
-                'Не смогли определить уникальный идентификатор для таблицы ' . $tableName
-            );
-        }
+        throw_if(empty($this->potentialSyncIds[$tableName]), new RuntimeException(
+            'Не смогли определить уникальный идентификатор для таблицы ' . $tableName
+        ));
 
         return $this->potentialSyncIds[$tableName];
     }
@@ -103,9 +105,7 @@ final class SyncIdState
         try {
             $model = $this->tableService->identifyModelByTable($tableName);
 
-            if ($model === null) {
-                throw new RuntimeException('Модель не идентифицирована по таблице '. $tableName);
-            }
+            throw_if(!$model instanceof Model, new RuntimeException('Модель не идентифицирована по таблице '. $tableName));
 
             if (!$model->getIncrementing() && !$this->hasPotentialSyncId($tableName, $model->getKeyName())) {
                 //нет гарантии, что разработчик не переопределил $incrementing в модели ошибочно. Нужна доп. проверка в БД
@@ -147,7 +147,7 @@ final class SyncIdState
 
     private function hasPotentialSyncId(string $tableName, string $value): bool
     {
-        return !empty($value) && in_array($value, $this->potentialSyncIds[$tableName] ?? [], true);
+        return $value !== '' && $value !== '0' && in_array($value, $this->potentialSyncIds[$tableName] ?? [], true);
     }
 
     /**
@@ -163,7 +163,7 @@ final class SyncIdState
                 $isGoodPotentialSyncId = $this->isGoodPotentialStringSyncId($potentialSyncId, $tableName);
             }
 
-            if ($isGoodPotentialSyncId === true) {
+            if ($isGoodPotentialSyncId) {
                 return $potentialSyncId;
             }
         }
@@ -175,7 +175,7 @@ final class SyncIdState
     {
         return array_all(
             $compoundPotentialSyncId,
-            fn($column) => $this->isGoodPotentialCompoundPartSyncId($column, $tableName) !== false
+            fn($column): bool => $this->isGoodPotentialCompoundPartSyncId($column, $tableName)
         );
 
     }

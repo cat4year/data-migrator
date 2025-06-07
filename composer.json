@@ -95,7 +95,7 @@
             "@pint"
         ],
         "rector": [
-            "@php ./vendor/bin/rector process --ansi"
+            "sh scripts/rector.sh"
         ],
         "prepare": "@php vendor/bin/testbench package:discover --ansi",
         "test": [

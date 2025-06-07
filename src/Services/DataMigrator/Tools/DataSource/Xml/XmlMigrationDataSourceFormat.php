@@ -14,21 +14,19 @@ final readonly class XmlMigrationDataSourceFormat implements MigrationDataSource
 {
     private array $keysMapMultipleToConcrete;
 
-    public function __construct(private Filesystem $files)
+    public function __construct(private Filesystem $filesystem)
     {
         $this->keysMapMultipleToConcrete = ['items' => 'item', 'relations' => 'relation'];
     }
 
     /**
-     * @param array $data
-     * @param string $path
      * @throws DOMException
      * @throws JsonException
      */
     public function save(array $data, string $path): void
     {
-        $this->files->ensureDirectoryExists(dirname($path));
-        $this->files->put($path, $this->prepare($data));
+        $this->filesystem->ensureDirectoryExists(dirname($path));
+        $this->filesystem->put($path, $this->prepare($data));
     }
 
     public function prepareForMigration(array $exportData): string
@@ -36,7 +34,7 @@ final readonly class XmlMigrationDataSourceFormat implements MigrationDataSource
         $preparedData = $this->prepare($exportData);
 
         return <<<XML
-$preparedData
+{$preparedData}
 XML;
     }
 
@@ -53,9 +51,9 @@ XML;
             JSON_THROW_ON_ERROR
         );
         $exportDataCorrectStructure = $this->prepareBeforeArrayToXml($exportDataWithoutObjects);
-        $xml = new ArrayToXml($exportDataCorrectStructure, 'data', xmlEncoding: 'utf-8', options: ['convertBoolToString' => true]);
+        $arrayToXml = new ArrayToXml($exportDataCorrectStructure, 'data', xmlEncoding: 'utf-8', options: ['convertBoolToString' => true]);
 
-        return $xml->prettify()->toXml();
+        return $arrayToXml->prettify()->toXml();
     }
 
     public function load(string $resource): array
@@ -74,10 +72,12 @@ XML;
                 $concreteKey = $this->keysMapMultipleToConcrete[$key];
                 $value = [$concreteKey => $value];
             }
+
             if (is_array($value)) {
                 $value = $this->prepareBeforeArrayToXml($value);
             }
         }
+
         unset($value);
 
         return $data;
@@ -102,6 +102,7 @@ XML;
 
             $value = $this->fixConcreteKeysStructure($value);
         }
+
         unset($value);
 
         return $data;
@@ -109,7 +110,7 @@ XML;
 
     private function fixWhenOneElementIsNotOnArray(array $value): array
     {
-        if (count($value) === 0) {
+        if ($value === []) {
             return [];
         }
 

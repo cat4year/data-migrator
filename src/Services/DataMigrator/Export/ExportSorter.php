@@ -57,6 +57,7 @@ final class ExportSorter
                                 'referenced_by' => [],
                             ];
                         }
+
                         $graph[$columnTableName]['referenced_by'][] = $tableName;
 
                         if ($column->isNullable()) {
@@ -75,7 +76,7 @@ final class ExportSorter
         $cycleTables = [];
         $visited = [];
 
-        foreach ($graph as $tableName => $tableInfo) {
+        foreach (array_keys($graph) as $tableName) {
             if (! isset($visited[$tableName])) {
                 $this->findCycle($tableName, $graph, $visited, [], $cycleTables);
             }
@@ -87,22 +88,22 @@ final class ExportSorter
     private function sortTables(array $cycleTables, array $graph, array $originalTables): array
     {
         // Сначала добавляем таблицы без зависимостей, и с необязательными ключами
-        $noDependencies = array_filter($graph, static fn ($deps) => empty($deps['dependencies']) && $deps['hasNullableKey']);
+        $noDependencies = array_filter($graph, static fn ($deps): bool => empty($deps['dependencies']) && $deps['hasNullableKey']);
 
         // Затем таблицы без зависимостей, но с обязательными ключами
-        $nullableWithoutDependencies = array_filter($graph, static fn ($deps) => empty($deps['dependencies']) && ! $deps['hasNullableKey']);
+        $nullableWithoutDependencies = array_filter($graph, static fn ($deps): bool => empty($deps['dependencies']) && ! $deps['hasNullableKey']);
 
         // Затем таблицы с зависимостями, но с необязательными ключами
         $nullableWithDependencies = array_filter($graph, static fn ($deps) => $deps['hasNullableKey']);
 
         // Затем таблицы из цикла
-        $cycleTables = array_filter($graph, static fn ($deps) => in_array($deps['name'], $cycleTables, true));
+        $cycleTables = array_filter($graph, static fn ($deps): bool => in_array($deps['name'], $cycleTables, true));
 
         // Затем pivot таблицы с зависимостями, но от которых никто не зависит
-        $pivotTables = array_filter($graph, static fn ($deps) => empty($deps['referenced_by']) && ! $deps['hasNullableKey']);
+        $pivotTables = array_filter($graph, static fn ($deps): bool => empty($deps['referenced_by']) && ! $deps['hasNullableKey']);
 
         // Меняем направление сортировки на возрастание (от слабых к сильным)
-        uasort($cycleTables, static function ($a, $b) {
+        uasort($cycleTables, static function (array $a, array $b): int {
             // Сначала сравниваем количество зависимостей
             $dependencyDiff = count($a['dependencies']) <=> count($b['dependencies']);
             if ($dependencyDiff !== 0) {
@@ -115,7 +116,7 @@ final class ExportSorter
 
             // Проверяем, есть ли у a зависимости, которые идут раньше в b
             $aHasEarlierDeps = false;
-            foreach ($aDeps as $dep => $value) {
+            foreach (array_keys($aDeps) as $dep) {
                 if (isset($bDeps[$dep])) {
                     $aHasEarlierDeps = true;
                     break;
@@ -124,7 +125,7 @@ final class ExportSorter
 
             // Проверяем, есть ли у b зависимости, которые идут раньше в a
             $bHasEarlierDeps = false;
-            foreach ($bDeps as $dep => $value) {
+            foreach (array_keys($bDeps) as $dep) {
                 if (isset($aDeps[$dep])) {
                     $bHasEarlierDeps = true;
                     break;
@@ -135,6 +136,7 @@ final class ExportSorter
             if ($aHasEarlierDeps && ! $bHasEarlierDeps) {
                 return 1;
             }
+
             // Если у b есть зависимости, которые идут раньше в a, то b идёт после a
             if ($bHasEarlierDeps && ! $aHasEarlierDeps) {
                 return -1;

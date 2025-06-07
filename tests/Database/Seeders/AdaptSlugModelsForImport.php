@@ -39,6 +39,6 @@ final class AdaptSlugModelsForImport extends Seeder
     private function getModelClass(string $tableName): string
     {
         $modelName = str_replace(' ', '', ucwords(str_replace('_', ' ', Str::singular($tableName))));
-        return "Cat4year\\DataMigratorTests\\App\\Models\\{$modelName}";
+        return 'Cat4year\DataMigratorTests\App\Models\\' . $modelName;
     }
 }

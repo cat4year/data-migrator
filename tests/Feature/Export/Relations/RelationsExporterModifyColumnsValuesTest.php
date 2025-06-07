@@ -33,7 +33,7 @@ final class RelationsExporterModifyColumnsValuesTest extends BaseTestCase
 
     private function extractItems(array $result): array
     {
-        return array_map(static fn($tableData) => $tableData['items'], $result);
+        return array_map(static fn(array $tableData) => $tableData['items'], $result);
     }
 
     public static function provide_collect_belongs_to_relations(): array

@@ -20,16 +20,16 @@ use ReflectionException;
 final readonly class MorphOneOrManyExporter implements RelationExporter
 {
     public function __construct(
-        private MorphOneOrMany $relation,
+        private MorphOneOrMany $morphOneOrMany,
         private ModelService $modelService,
-        private TableService $tableRepository,
+        private TableService $tableService,
     ) {
     }
 
     /**
      * @throws BindingResolutionException
      */
-    public static function create(MorphOneOrMany $relation): self
+    public static function create(MorphOneOrMany $morphOneOrMany): self
     {
         return app()->makeWith(self::class, compact('relation'));
     }
@@ -38,7 +38,7 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
     {
         $ids = $this->getUsedIds($foreignIds);
 
-        $table = $this->relation->getModel()->getTable();
+        $table = $this->morphOneOrMany->getModel()->getTable();
 
         return [
             $table => [
@@ -51,12 +51,12 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
 
     private function getUsedIds(array $foreignIds): array
     {
-        $idKey = $this->relation->getRelated()->getKeyName();
-        $foreignKey = $this->relation->getForeignKeyName();
-        $morphType = $this->relation->getMorphType();
-        $morphTypeValue = $this->relation->getParent()::class;
+        $idKey = $this->morphOneOrMany->getRelated()->getKeyName();
+        $foreignKey = $this->morphOneOrMany->getForeignKeyName();
+        $morphType = $this->morphOneOrMany->getMorphType();
+        $morphTypeValue = $this->morphOneOrMany->getParent()::class;
 
-        return $this->relation->getRelated()::query()
+        return $this->morphOneOrMany->getRelated()::query()
             ->select()
             ->whereNotNull($foreignKey)
             ->where($morphType, $morphTypeValue)
@@ -68,7 +68,7 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
 
     private function getEntity(): Model
     {
-        return $this->relation->getRelated();
+        return $this->morphOneOrMany->getRelated();
     }
 
     private function getKeyName(): string
@@ -81,16 +81,16 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
      */
     public function getModifyInfo(): array
     {
-        $parent = $this->relation->getParent();
-        $parentTable = $parent->getTable();
-        $parentKeyName = $parent->getKeyName();
-        $uniqueParentKeyName = $this->modelService->identifyUniqueIdColumn($parent);
+        $model = $this->morphOneOrMany->getParent();
+        $parentTable = $model->getTable();
+        $parentKeyName = $model->getKeyName();
+        $uniqueParentKeyName = $this->modelService->identifyUniqueIdColumn($model);
 
         if ($uniqueParentKeyName === null) {
             // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
         }
 
-        $related = $this->relation->getRelated();
+        $related = $this->morphOneOrMany->getRelated();
         $relatedTable = $related->getTable();
         $uniqueRelatedKeyName = $this->modelService->identifyUniqueIdColumn($related);
 
@@ -98,34 +98,34 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
             // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
         }
 
-        $foreignKeyName = $this->relation->getForeignKeyName();
+        $foreignKeyName = $this->morphOneOrMany->getForeignKeyName();
 
         $parenSyncKey = new SyncId([$uniqueParentKeyName]);
 
-        $parentTableColumn = new ExportModifySimpleColumn(
+        $exportModifySimpleColumn = new ExportModifySimpleColumn(
             tableName: $parentTable,
             keyName: $parentKeyName,
             uniqueKeyName: $parenSyncKey,
-            nullable: $this->tableRepository->isNullableColumn($parentTable, $parentKeyName),
-            autoincrement: $this->tableRepository->isAutoincrementColumn($parentTable, $parentKeyName),
+            nullable: $this->tableService->isNullableColumn($parentTable, $parentKeyName),
+            autoincrement: $this->tableService->isAutoincrementColumn($parentTable, $parentKeyName),
         );
 
-        $relatedTableForeignColumn = new ExportModifyMorphColumn(
-            morphType: $this->relation->getMorphType(),
+        $exportModifyMorphColumn = new ExportModifyMorphColumn(
+            morphType: $this->morphOneOrMany->getMorphType(),
             tableName: $relatedTable,
             keyName: $foreignKeyName,
             sourceKeyNames: [$parentTable => $parenSyncKey],
             sourceOldKeyNames: [$parentTable => $parentKeyName],
-            nullable: $this->tableRepository->isNullableColumn($relatedTable, $foreignKeyName),
-            autoincrement: $this->tableRepository->isAutoincrementColumn($relatedTable, $foreignKeyName),
+            nullable: $this->tableService->isNullableColumn($relatedTable, $foreignKeyName),
+            autoincrement: $this->tableService->isAutoincrementColumn($relatedTable, $foreignKeyName),
         );
 
         $result = [
             $parentTable => [
-                $parentTableColumn->getKeyName() => $parentTableColumn,
+                $exportModifySimpleColumn->getKeyName() => $exportModifySimpleColumn,
             ],
             $relatedTable => [
-                $relatedTableForeignColumn->getKeyName() => $relatedTableForeignColumn,
+                $exportModifyMorphColumn->getKeyName() => $exportModifyMorphColumn,
             ],
         ];
 
@@ -137,8 +137,8 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
                 tableName: $relatedTable,
                 keyName: $relatedIdKeyName,
                 uniqueKeyName: $relatedSyncKey,
-                nullable: $this->tableRepository->isNullableColumn($relatedTable, $relatedIdKeyName),
-                autoincrement: $this->tableRepository->isAutoincrementColumn($relatedTable, $relatedIdKeyName),
+                nullable: $this->tableService->isNullableColumn($relatedTable, $relatedIdKeyName),
+                autoincrement: $this->tableService->isAutoincrementColumn($relatedTable, $relatedIdKeyName),
             );
         }
 

@@ -13,14 +13,14 @@ use DOMText;
 
 final readonly class XmlToArray
 {
-    private DOMDocument $document;
+    private DOMDocument $domDocument;
 
     public function __construct(string $xml)
     {
-        $this->document = new DOMDocument;
-        $this->document->preserveWhiteSpace = false;
+        $this->domDocument = new DOMDocument;
+        $this->domDocument->preserveWhiteSpace = false;
 
-        $this->document->loadXML($xml);
+        $this->domDocument->loadXML($xml);
     }
 
     public static function convert(string $xml): array
@@ -28,36 +28,36 @@ final readonly class XmlToArray
         return new self($xml)->toArray();
     }
 
-    private function convertAttributes(DOMNamedNodeMap $nodeMap): ?array
+    private function convertAttributes(DOMNamedNodeMap $domNamedNodeMap): ?array
     {
-        if ($nodeMap->length === 0) {
+        if ($domNamedNodeMap->length === 0) {
             return null;
         }
 
         $result = [];
 
         /** @var DOMAttr $item */
-        foreach ($nodeMap as $item) {
+        foreach ($domNamedNodeMap as $item) {
             $result[$item->name] = $item->value;
         }
 
         return ['_attributes' => $result];
     }
 
-    private function convertDomElement(DOMElement $element)
+    private function convertDomElement(DOMElement $domElement): string|array|null
     {
         $sameNames = [];
-        $result = $this->convertAttributes($element->attributes);
+        $result = $this->convertAttributes($domElement->attributes);
 
-        foreach ($element->childNodes as $node) {
+        foreach ($domElement->childNodes as $node) {
             if (array_key_exists($node->nodeName, $sameNames)) {
-                $sameNames[$node->nodeName]++;
+                ++$sameNames[$node->nodeName];
             } else {
                 $sameNames[$node->nodeName] = 0;
             }
         }
 
-        foreach ($element->childNodes as $key => $node) {
+        foreach ($domElement->childNodes as $key => $node) {
             if ($result === null) {
                 $result = [];
             }
@@ -69,7 +69,7 @@ final readonly class XmlToArray
             }
 
             if ($node instanceof DOMText) {
-                if (empty($result)) {
+                if ($result === '' || $result === '0' || $result === []) {
                     $result = $node->textContent;
                 } else {
                     $result['_value'] = $node->textContent;
@@ -83,7 +83,7 @@ final readonly class XmlToArray
                     continue;
                 }
 
-                if ($sameNames[$node->nodeName]) {
+                if ($sameNames[$node->nodeName] !== 0) {
                     if (! array_key_exists($node->nodeName, $result)) {
                         $result[$node->nodeName] = [];
                     }
@@ -102,8 +102,8 @@ final readonly class XmlToArray
     {
         $result = [];
 
-        if ($this->document->hasChildNodes()) {
-            $children = $this->document->childNodes;
+        if ($this->domDocument->hasChildNodes()) {
+            $children = $this->domDocument->childNodes;
 
             foreach ($children as $child) {
                 $result[$child->nodeName] = $this->convertDomElement($child);

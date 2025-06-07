@@ -22,12 +22,12 @@ final class SlugFirstFactory extends Factory
     public function definition(): array
     {
         return [
-            'slug' => Str::slug($this->faker->sentence($this->faker->numberBetween(1, 3)), '-'),
-            'bool_test' => $this->faker->boolean(),
-            'timestamp_test' => $this->faker->dateTime(),
-            'string_test' => $this->faker->realText(),
-            'int_test' => $this->faker->randomNumber(),
-            'slug_three_id' => $this->faker->boolean() ? SlugThree::factory() : null,
+            'slug' => Str::slug(fake()->sentence(fake()->numberBetween(1, 3)), '-'),
+            'bool_test' => fake()->boolean(),
+            'timestamp_test' => fake()->dateTime(),
+            'string_test' => fake()->realText(),
+            'int_test' => fake()->randomNumber(),
+            'slug_three_id' => fake()->boolean() ? SlugThree::factory() : null,
         ];
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cat4year\DataMigrator\Entity;
 
 use Illuminate\Contracts\Support\Arrayable;
@@ -10,7 +12,7 @@ final readonly class ExportModifySimpleColumn implements ExportModifyColumn, Arr
     public function __construct(
         private string $tableName,
         private string $keyName,
-        private SyncId $uniqueKeyName,
+        private SyncId $syncId,
         private bool $nullable,
         private bool $autoincrement,
         private bool $isPrimaryKey = true,
@@ -40,7 +42,7 @@ final readonly class ExportModifySimpleColumn implements ExportModifyColumn, Arr
 
     public function getSourceUniqueKeyName(): SyncId
     {
-        return $this->uniqueKeyName;
+        return $this->syncId;
     }
 
     public function isNullable(): bool
@@ -61,11 +63,11 @@ final readonly class ExportModifySimpleColumn implements ExportModifyColumn, Arr
 
     public static function fromArray(array $array): self
     {
-        $uniqueKeyName = new SyncId($array['uniqueKeyName']);
+        $syncId = new SyncId($array['uniqueKeyName']);
         return new self(
             tableName: $array['tableName'],
             keyName: $array['keyName'],
-            uniqueKeyName: $uniqueKeyName,
+            uniqueKeyName: $syncId,
             nullable: $array['nullable'],
             autoincrement: $array['autoincrement'],
             isPrimaryKey: $array['isPrimaryKey'],
@@ -77,7 +79,7 @@ final readonly class ExportModifySimpleColumn implements ExportModifyColumn, Arr
         return [
             'tableName' => $this->tableName,
             'keyName' => $this->keyName,
-            'uniqueKeyName' => $this->uniqueKeyName,
+            'uniqueKeyName' => $this->syncId,
             'nullable' => $this->nullable,
             'autoincrement' => $this->autoincrement,
             'isPrimaryKey' => $this->isPrimaryKey,

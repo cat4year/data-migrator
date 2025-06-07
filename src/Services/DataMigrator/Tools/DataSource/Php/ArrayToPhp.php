@@ -11,7 +11,7 @@ use function Cat4year\DataMigrator\Helpers\var_pretty_export;
 final readonly class ArrayToPhp
 {
     public function __construct(
-        private Filesystem $files,
+        private Filesystem $filesystem,
         private string $stubPath = __DIR__.'/array-migration-data.stub')
     {
     }
@@ -31,11 +31,9 @@ final readonly class ArrayToPhp
      */
     private function getDataStub(): string
     {
-        if (! $this->files->exists($this->stubPath)) {
-            throw new FileNotFoundException($this->stubPath.' отсутствует. Он нужен для корректной работы');
-        }
+        throw_unless($this->filesystem->exists($this->stubPath), new FileNotFoundException($this->stubPath.' отсутствует. Он нужен для корректной работы'));
 
-        return $this->files->get($this->stubPath);
+        return $this->filesystem->get($this->stubPath);
     }
 
     private function populateDataStub(string $stub, ?string $data): string

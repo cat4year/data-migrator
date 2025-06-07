@@ -11,7 +11,7 @@ final readonly class ModelService
 {
     public function __construct(
         //todo: задуматься, о проблеме low cohesion
-        private TableService $tableRepository,
+        private TableService $tableService,
     ) {
     }
 
@@ -56,7 +56,7 @@ final readonly class ModelService
     {
         if (! $model->hasAttribute('migrationColumnKey')) { // todo: добавить треит и везде его где не используется
             if (config('data-migrator.try_find_unique_relation_column') === true) {
-                return $this->tableRepository->tryFindUniqueIdColumnByAutoIncrementKey(
+                return $this->tableService->tryFindUniqueIdColumnByAutoIncrementKey(
                     $model->getKeyName(),
                     $model->getTable()
                 );

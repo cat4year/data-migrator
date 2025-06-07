@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export;
 
+use Illuminate\Support\Facades\DB;
 use Cat4year\DataMigrator\Entity\SyncId;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationsExporter;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
-use DB;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
@@ -21,13 +21,12 @@ use stdClass;
 final readonly class Exporter
 {
     public function __construct(
-        private Model $entity,
-        private ExportConfigurator $configurator,
-        private RelationsExporter $relationManager,
-        private ExportSorter $sorter,
-        private TableService $tableRepository,
+        private Model $model,
+        private ExportConfigurator $exportConfigurator,
+        private RelationsExporter $relationsExporter,
+        private ExportSorter $exportSorter,
+        private TableService $tableService,
         private SyncIdState $syncIdState,
-        private ExportSyncIdAttacher $syncIdAttacher,
     ) {
     }
 
@@ -38,20 +37,18 @@ final readonly class Exporter
      *
      * @throws BindingResolutionException
      */
-    public static function create(Model|string $entity, ?ExportConfigurator $configurator = null): self
+    public static function create(Model|string $entity, ?ExportConfigurator $exportConfigurator = null): self
     {
-        if ($configurator === null) {
-            $configurator = ExportConfigurator::create();
+        if (!$exportConfigurator instanceof ExportConfigurator) {
+            $exportConfigurator = ExportConfigurator::create();
         }
 
-        if (is_string($entity) && ! class_exists($entity)) {
-            throw new InvalidArgumentException("Entity class '$entity' does not exist");
-        }
+        throw_if(is_string($entity) && ! class_exists($entity), new InvalidArgumentException(sprintf("Entity class '%s' does not exist", $entity)));
 
         $params = [
             'entity' => is_string($entity) ? app($entity) : $entity,
-            'configurator' => $configurator,
-            'relationManager' => RelationsExporter::create($configurator),
+            'configurator' => $exportConfigurator,
+            'relationManager' => RelationsExporter::create(),
         ];
 
         return app()->makeWith(self::class, $params);
@@ -72,32 +69,28 @@ final readonly class Exporter
      */
     public function exportData(): array
     {
-        if (empty($this->configurator->getIds())) {
-            $idKey = $this->entity->getKeyName();
-            $ids = $this->entity::query()
+        if ($this->exportConfigurator->getIds() === []) {
+            $idKey = $this->model->getKeyName();
+            $ids = $this->model::query()
                 ->select($idKey)
                 ->pluck($idKey)
                 ->toArray();
         } else {
-            $ids = $this->configurator->getIds();
+            $ids = $this->exportConfigurator->getIds();
         }
 
-        if (empty($ids)) {
-            throw new RuntimeException('Empty ids for export entity');
-        }
+        throw_if(empty($ids), new RuntimeException('Empty ids for export entity'));
 
         $exportData = $this->makeEntityData($ids);
-        if (empty($exportData)) {
-            throw new RuntimeException('Export items not found');
-        }
+        throw_if($exportData === [], new RuntimeException('Export items not found'));
 
         return $exportData;
     }
 
     public function save(array $exportData): string
     {
-        $migrationPath = $this->configurator->makeSourceFullPath();
-        $this->configurator->getSourceFormat()->save($exportData, $migrationPath);
+        $migrationPath = $this->exportConfigurator->makeSourceFullPath();
+        $this->exportConfigurator->getSourceFormat()->save($exportData, $migrationPath);
 
         return $migrationPath;
     }
@@ -109,15 +102,15 @@ final readonly class Exporter
      */
     public function makeEntityData(array $ids): array
     {
-        $table = $this->entity->getTable();
+        $table = $this->model->getTable();
         $syncId = $this->syncIdState->tableSyncId($table);
-        $mainEntityResult = $this->makeItems($table, $ids, $syncId, $this->entity->getKeyName());
+        $mainEntityResult = $this->makeItems($table, $ids, $syncId, $this->model->getKeyName());
 
-        if (empty($mainEntityResult)) {
+        if ($mainEntityResult === []) {
             return [];
         }
 
-        if (! $this->configurator->withRelations()) {
+        if (! $this->exportConfigurator->withRelations()) {
             $resultMainData = [
                 'table' => $table,
                 'items' => $mainEntityResult,
@@ -127,12 +120,12 @@ final readonly class Exporter
             return [$table => $resultMainData];
         }
 
-        $state = $this->relationManager->collectRelations($table, $ids); // todo: перекрывает result
+        $exporterState = $this->relationsExporter->collectRelations($table, $ids); // todo: перекрывает result
 
         /** @var string $entityTable */
-        foreach ($state->entityIds as $entityTable => $entityIds) {
+        foreach ($exporterState->entityIds as $entityTable => $entityIds) {
             // есть проблема дублирования получения записей основной модели. Критично ли?
-            $keyName = $this->tableRepository->identifyPrimaryKeyNameByTable($entityTable);
+            $keyName = $this->tableService->identifyPrimaryKeyNameByTable($entityTable);
 
             if ($keyName === null) {
                 continue;
@@ -141,7 +134,7 @@ final readonly class Exporter
             $entitySyncId = $this->syncIdState->tableSyncId($entityTable);
             $entityItems = $this->makeItems($entityTable, $entityIds, $entitySyncId, $keyName);
 
-            if (empty($entityItems)) {
+            if ($entityItems === []) {
                 continue;
             }
 
@@ -151,19 +144,19 @@ final readonly class Exporter
                 'syncId' => $entitySyncId,
             ];
 
-            $state->result->put($entityTable, $resultDataForTable);
+            $exporterState->result->put($entityTable, $resultDataForTable);
         }
 
         $exportModifier = app()->makeWith(ExportModifier::class, [
-            'entitiesCollections' => $state->result,
-            'entityClasses' => $state->relationsInfo,
+            'entitiesCollections' => $exporterState->result,
+            'entityClasses' => $exporterState->relationsInfo,
         ]);
 
         $result = $exportModifier->modify();
 
         //$resultWithUniqueColumns = $this->syncIdAttacher->attachSyncIds($result);
 
-        return $this->sorter->sort($result);
+        return $this->exportSorter->sort($result);
     }
 
     /**
@@ -178,30 +171,21 @@ final readonly class Exporter
         bool $emptyIsAll = false
     ): array
     {
-        if (empty($ids) && ! $emptyIsAll) {
+        if ($ids === [] && ! $emptyIsAll) {
             return [];
         }
 
         $items = DB::table($table)
-            ->when(!empty($ids), static fn($q) => $q->whereIn($idKey, $ids))
+            ->unless($ids === [], static fn($q) => $q->whereIn($idKey, $ids))
             ->get()
-            ->keyBy(static fn(stdClass $item) => $syncId->keyStringByValues((array)$item));
+            ->keyBy(static fn(stdClass $item): string => $syncId->keyStringByValues((array)$item));
 
         return $this->dataToArray($items);
     }
 
-    private static function withConditionsBySyncId(Builder $query, array $keys, array $values): Builder
+    public function dataToArray(SupportCollection $supportCollection, bool $safeKeyName = true): array
     {
-        foreach ($keys as $key) {
-            $query->whereIn($key, array_column($values, $key));
-        }
-
-        return $query;
-    }
-
-    public function dataToArray(SupportCollection $collection, bool $safeKeyName = true): array
-    {
-        return $collection->map(static function (Model|stdClass $model) use ($safeKeyName) {
+        return $supportCollection->map(static function (Model|stdClass $model) use ($safeKeyName) {
             if ($model instanceof stdClass) {
                 return (array) $model;
             }
@@ -230,7 +214,7 @@ final readonly class Exporter
                 }
             }
 
-            if ($safeKeyName === true) {
+            if ($safeKeyName) {
                 $attributes[$model->getKeyName()] = $model->getKey();
             }
 

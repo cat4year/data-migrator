@@ -10,5 +10,5 @@ interface DataMigratorConfiguration
 {
     public function make(): ExportConfigurator;
 
-    public function update(ExportConfigurator $configurator): ExportConfigurator;
+    public function update(ExportConfigurator $exportConfigurator): ExportConfigurator;
 }

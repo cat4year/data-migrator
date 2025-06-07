@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cat4year\DataMigrator\Entity;
 
 use Illuminate\Contracts\Support\Arrayable;
@@ -67,7 +69,7 @@ final class ExportModifyMorphColumn implements ExportModifyColumn, Arrayable, Js
 
     public function getSourceTableNames(): array
     {
-        return $this->getSourceKeyNames();
+        return $this->sourceKeyNames;
     }
 
     public function getSourceKeyName(): string
@@ -77,12 +79,12 @@ final class ExportModifyMorphColumn implements ExportModifyColumn, Arrayable, Js
 
     public function getSourceUniqueKeyNameByTable(string $table): ?SyncId
     {
-        return $this->getSourceKeyNames()[$table] ?? null;
+        return $this->sourceKeyNames[$table] ?? null;
     }
 
     public function getSourceKeyNameByTable(string $table): ?string
     {
-        return $this->getSourceOldKeyNames()[$table] ?? null;
+        return $this->sourceOldKeyNames[$table] ?? null;
     }
 
     public function getSourceUniqueKeyName(): SyncId

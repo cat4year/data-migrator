@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export;
 
+use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationExporter;
 use Cat4year\DataMigrator\Entity\ExportModifyColumn;
 use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
 use Cat4year\DataMigrator\Entity\SyncId;
@@ -17,7 +20,7 @@ use Throwable;
 final readonly class ExportModifier
 {
     public function __construct(
-        private RelationFactory $factory,
+        private RelationFactory $relationFactory,
         private SupportCollection $entitiesCollections,
         private SupportCollection $entityClasses
     )
@@ -28,7 +31,7 @@ final readonly class ExportModifier
     {
         $entitiesModifyInfo = $this->makeAndHandleModifyInfo();
 
-        if (empty($entitiesModifyInfo)) {
+        if ($entitiesModifyInfo === []) {
             return $this->entitiesCollections->toArray();
         }
 
@@ -52,9 +55,9 @@ final readonly class ExportModifier
             foreach ($relationsByEntity as $relationName => $relation) {
                 assert($relation instanceof Relation);
 
-                $relationModifier = $this->factory->createByRelation($relation, $this->entitiesCollections);
+                $relationModifier = $this->relationFactory->createByRelation($relation, $this->entitiesCollections);
 
-                if ($relationModifier === null) {
+                if (!$relationModifier instanceof RelationExporter) {
                     continue;
                 }
 
@@ -71,8 +74,8 @@ final readonly class ExportModifier
     public function handleModifyInfo(array $entitiesModifyInfo): array
     {
         $result = [];
-        foreach ($entitiesModifyInfo as $modifyItemsForRelationName) {
-            foreach ($modifyItemsForRelationName as $table => $modifyInfo) {
+        foreach ($entitiesModifyInfo as $entityModifyInfo) {
+            foreach ($entityModifyInfo as $table => $modifyInfo) {
                 foreach ($modifyInfo as $attributeKeyName => $modifyInfoForKey) {
                     assert($modifyInfoForKey instanceof ExportModifyColumn);
 
@@ -141,15 +144,13 @@ final readonly class ExportModifier
                     }
 
                     assert($sourceKeyName !== null);
-                    assert($syncId !== null);
+                    assert($syncId instanceof SyncId);
 
-                    if (!isset($entities[$modifyInfoTable]['items'])) {
-                        /**
-                         * todo: надо решить как тут действовать.
-                         * todo: Либо отменять экспорт, либо пропускать с неизменным автоинкрементным полем
-                         **/
-                        throw new RuntimeException('Отсутствуют данные таблицы источника для подмены колонки');
-                    }
+                    /**
+                     * todo: надо решить как тут действовать.
+                     * todo: Либо отменять экспорт, либо пропускать с неизменным автоинкрементным полем
+                     **/
+                    throw_unless(isset($entities[$modifyInfoTable]['items']), new RuntimeException('Отсутствуют данные таблицы источника для подмены колонки'));
 
                     try {
                         $newSyncValue = $this->getSyncStringFromSource(
@@ -165,6 +166,7 @@ final readonly class ExportModifier
                     }
                 }
             }
+
             $result[$tableName]['modifiedAttributes'] = $entitiesModifyInfo[$tableName];
             $result[$tableName]['syncId'] = $entityInfo['syncId'];
         }
@@ -177,21 +179,10 @@ final readonly class ExportModifier
      */
     private function getSyncStringFromSource(array $items, string $key, string|int $value, SyncId $syncId): string
     {
-        $sourceItem = collect($items)->first(static fn($item) => $item[$key] === $value);
+        $sourceItem = collect($items)->first(static fn($item): bool => $item[$key] === $value);
 
-        if ($sourceItem === null) {
-            throw new SourceItemNotFoundException("Source item not found for attribute value: {$value}");
-        }
+        throw_if($sourceItem === null, new SourceItemNotFoundException('Source item not found for attribute value: ' . $value));
 
         return $syncId->keyStringByValues($sourceItem);
-    }
-
-    private function getModifyInfoItemAttributes(array $items, SyncId $syncId, string $attributeKeyName, string $attributeValue)
-    {
-        $collection = collect($items);
-
-        $item = $collection->firstWhere($attributeKeyName, $attributeValue);
-
-        return $syncId->keyStringByValues($item);
     }
 }

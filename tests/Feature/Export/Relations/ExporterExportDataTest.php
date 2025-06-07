@@ -44,15 +44,16 @@ final class ExporterExportDataTest extends BaseTestCase
     ): void
     {
         $this->seed($seederClass);
-        $configurator = app(ExportConfigurator::class);
-        $configurator->setIds($ids)->setMaxRelationDepth($maxDepth);
+        $exportConfigurator = app(ExportConfigurator::class);
+        $exportConfigurator->setIds($ids)->setMaxRelationDepth($maxDepth);
         if ($relationTypeClass !== null) {
-            $configurator->setSupportedRelations([$relationTypeClass]);
+            $exportConfigurator->setSupportedRelations([$relationTypeClass]);
         }
-        $relationManager = app()->makeWith(RelationsExporter::class, compact('configurator'));
+
+        $relationsExporter = app()->makeWith(RelationsExporter::class, compact('configurator'));
         $exporter = app()->makeWith(Exporter::class,
             [
-                'relationManager' => $relationManager,
+                'relationManager' => $relationsExporter,
                 'entity' => app(TableService::class)->identifyModelByTable($entityClass)
             ]);
 
@@ -76,9 +77,9 @@ final class ExporterExportDataTest extends BaseTestCase
             return $tableData;
         }
 
-        foreach ($tableData['items'] as $index => $item) {
-            foreach ($keysForRemove as $key) {
-                unset($tableData['items'][$index][$key]);
+        foreach (array_keys($tableData['items']) as $index) {
+            foreach ($keysForRemove as $keyForRemove) {
+                unset($tableData['items'][$index][$keyForRemove]);
             }
         }
 
@@ -351,15 +352,16 @@ final class ExporterExportDataTest extends BaseTestCase
     ): void
     {
         $this->seed($seederClass);
-        $configurator = app(ExportConfigurator::class);
-        $configurator->setIds($ids)->setMaxRelationDepth($maxDepth);
+        $exportConfigurator = app(ExportConfigurator::class);
+        $exportConfigurator->setIds($ids)->setMaxRelationDepth($maxDepth);
         if ($relationTypeClass !== null) {
-            $configurator->setSupportedRelations([$relationTypeClass]);
+            $exportConfigurator->setSupportedRelations([$relationTypeClass]);
         }
-        $relationManager = app()->makeWith(RelationsExporter::class, compact('configurator'));
+
+        $relationsExporter = app()->makeWith(RelationsExporter::class, compact('configurator'));
         $exporter = app()->makeWith(Exporter::class,
             [
-                'relationManager' => $relationManager,
+                'relationManager' => $relationsExporter,
                 'entity' => app(TableService::class)->identifyModelByTable($entityClass)
             ]);
 

@@ -14,27 +14,27 @@ final class ImportData
     private array $data;
 
     public function __construct(
-        private readonly MigrationDataSourceFormat $sourceFormat,
+        private readonly MigrationDataSourceFormat $migrationDataSourceFormat,
     ) {
     }
 
     public static function createFromFile(string $path): self
     {
-        $self = app(self::class);
+        $importData = app(self::class);
 
-        $self->data = $self->sourceFormat->load($path);
+        $importData->data = $importData->migrationDataSourceFormat->load($path);
 
-        return $self;
+        return $importData;
 
     }
 
     public static function createFromArray(array $data): self
     {
-        $self = app(self::class);
+        $importData = app(self::class);
 
-        $self->data = $data;
+        $importData->data = $data;
 
-        return $self;
+        return $importData;
     }
 
     public function get(): array

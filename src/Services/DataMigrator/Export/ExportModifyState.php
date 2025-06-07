@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export;
 
 final readonly class ExportModifyState
@@ -9,14 +11,5 @@ final readonly class ExportModifyState
     public function getTableColumnsModifyInfoMap(): array
     {
         return $this->tableColumnsModifyInfoMap;
-    }
-
-    public function addModifyInfoToTableColumnsMap(array $modifyInfo): void
-    {
-        foreach($modifyInfo as $tableName => $tableModifyColumns){
-            foreach($tableModifyColumns as $columnKey => $modifyColumn){
-
-            }
-        }
     }
 }

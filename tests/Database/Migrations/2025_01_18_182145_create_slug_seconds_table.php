@@ -13,12 +13,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('slug_seconds', static function (Blueprint $table): void {
-            $table->id();
-            $table->string('slug')->unique();
-            $table->string('name')->nullable();
-            $table->foreignId('slug_first_id')->constrained('slug_firsts');
-            $table->timestamps();
+        Schema::create('slug_seconds', static function (Blueprint $blueprint): void {
+            $blueprint->id();
+            $blueprint->string('slug')->unique();
+            $blueprint->string('name')->nullable();
+            $blueprint->foreignId('slug_first_id')->constrained('slug_firsts');
+            $blueprint->timestamps();
         });
     }
 

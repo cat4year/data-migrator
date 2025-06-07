@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigratorTests\App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\FilesystemAdapter;
@@ -38,13 +39,6 @@ class Attachment extends Model
     ];
 
     /**
-     * @var array
-     */
-    protected $casts = [
-        'sort' => 'integer',
-    ];
-
-    /**
      * Return the address by which you can access the file.
      */
     public function url(?string $default = null): ?string
@@ -63,24 +57,27 @@ class Attachment extends Model
         return $this->url();
     }
 
-    public function getRelativeUrlAttribute(): ?string
+    protected function relativeUrl(): Attribute
     {
-        $url = $this->url();
+        return Attribute::make(get: function () {
+            $url = $this->url();
+            if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+                return null;
+            }
 
-        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
-            return null;
-        }
-
-        return parse_url((string) $url, PHP_URL_PATH) ?: null;
+            return parse_url((string) $url, PHP_URL_PATH) ?: null;
+        });
     }
 
-    public function getTitleAttribute(): ?string
+    protected function title(): Attribute
     {
-        if ($this->original_name !== 'blob') {
-            return $this->original_name;
-        }
+        return Attribute::make(get: function () {
+            if ($this->original_name !== 'blob') {
+                return $this->original_name;
+            }
 
-        return $this->name.'.'.$this->extension;
+            return $this->name.'.'.$this->extension;
+        });
     }
 
     public function physicalPath(): ?string
@@ -101,10 +98,11 @@ class Attachment extends Model
     public function delete()
     {
         if ($this->exists) {
-            if (static::where('hash', $this->hash)->where('disk', $this->disk)->limit(2)->count() <= 1) {
+            if (static::query()->where('hash', $this->hash)->where('disk', $this->disk)->limit(2)->count() <= 1) {
                 // Physical removal a file.
                 Storage::disk($this->disk)->delete($this->physicalPath());
             }
+
             $this->relationships()->delete();
         }
 
@@ -113,31 +111,21 @@ class Attachment extends Model
 
     /**
      * Get MIME type for file.
-     *
-     * @return string
      */
     public function getMimeType(): string
     {
-        $mimes = new MimeTypes;
+        $mimeTypes = new MimeTypes;
 
-        $type = $mimes->getMimeType($this->getAttribute('extension'));
+        $type = $mimeTypes->getMimeType($this->getAttribute('extension'));
 
         return $type ?? 'unknown';
     }
 
-    /**
-     * @param string $type
-     *
-     * @return bool
-     */
     public function isMime(string $type): bool
     {
         return Str::of($this->mime)->is($type);
     }
 
-    /**
-     * @return bool
-     */
     public function isPhysicalExists(): bool
     {
         return Storage::disk($this->disk)->exists($this->physicalPath());
@@ -149,5 +137,12 @@ class Attachment extends Model
     public function download(array $headers = [])
     {
         return Storage::disk($this->disk)->download($this->physicalPath(), $this->original_name, $headers);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'sort' => 'integer',
+        ];
     }
 }

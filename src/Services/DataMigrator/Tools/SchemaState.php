@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cat4year\DataMigrator\Services\DataMigrator\Tools;
 
 use Illuminate\Support\Facades\Schema;
@@ -7,6 +9,7 @@ use Illuminate\Support\Facades\Schema;
 final class SchemaState
 {
     private array $columns = [];
+
     private array $indexes = [];
 
     public function columns(string $table): array

@@ -4,29 +4,29 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export\Relations;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\ModelService;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
-use DB;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Schema;
 
 final readonly class BelongsToManyExporter implements RelationExporter
 {
     public function __construct(
-        private BelongsToMany $relation,
+        private BelongsToMany $belongsToMany,
         private ModelService $modelService,
-        private TableService $tableRepository,
+        private TableService $tableService,
     ) {
     }
 
     /**
      * @throws BindingResolutionException
      */
-    public static function create(BelongsToMany $relation): self
+    public static function create(BelongsToMany $belongsToMany): self
     {
-        return app()->makeWith(self::class, ['relation' => $relation]);
+        return app()->makeWith(self::class, ['relation' => $belongsToMany]);
     }
 
     public function makeExportData(array $foreignIds): array
@@ -35,13 +35,13 @@ final readonly class BelongsToManyExporter implements RelationExporter
         $pivotIdKeyName = $this->getPivotIdColumnKeyName();
         $pivotIds = $this->getPivotUsedIds($foreignIds, $pivotIdKeyName);
 
-        $relatedTable = $this->relation->getRelated()->getTable();
-        $pivotTable = $this->relation->getTable();
+        $relatedTable = $this->belongsToMany->getRelated()->getTable();
+        $pivotTable = $this->belongsToMany->getTable();
 
         return [
             $relatedTable => [
                 'table' => $relatedTable,
-                'keyName' => $this->relation->getRelated()->getKeyName(),
+                'keyName' => $this->belongsToMany->getRelated()->getKeyName(),
                 'ids' => $relatedIds,
             ],
             $pivotTable => [
@@ -54,10 +54,10 @@ final readonly class BelongsToManyExporter implements RelationExporter
 
     private function getRelatedUsedIds(array $ids): array
     {
-        $parentPivotKeyName = $this->relation->getForeignPivotKeyName();
-        $relatedPivotKeyName = $this->relation->getRelatedPivotKeyName();
+        $parentPivotKeyName = $this->belongsToMany->getForeignPivotKeyName();
+        $relatedPivotKeyName = $this->belongsToMany->getRelatedPivotKeyName();
 
-        return DB::table($this->relation->getTable())
+        return DB::table($this->belongsToMany->getTable())
             ->where($parentPivotKeyName, $ids)
             ->get()
             ->pluck($relatedPivotKeyName)
@@ -66,7 +66,7 @@ final readonly class BelongsToManyExporter implements RelationExporter
 
     private function getPivotIdColumnKeyName(bool $checkFalseAutoIncrement = false): string
     {
-        $columns = Schema::getColumns($this->relation->getTable());
+        $columns = Schema::getColumns($this->belongsToMany->getTable());
         foreach ($columns as $column) {
             if ($column['nullable'] === false && (! $checkFalseAutoIncrement || $column['auto_increment'] === false)) {
                 return $column['name'];
@@ -78,37 +78,27 @@ final readonly class BelongsToManyExporter implements RelationExporter
 
     private function getPivotUsedIds(array $ids, string $pivotIdKeyName): array
     {
-        $parentPivotKeyName = $this->relation->getForeignPivotKeyName();
+        $parentPivotKeyName = $this->belongsToMany->getForeignPivotKeyName();
 
-        return DB::table($this->relation->getTable())
+        return DB::table($this->belongsToMany->getTable())
             ->whereIn($parentPivotKeyName, $ids)
             ->get()
             ->pluck($pivotIdKeyName)
             ->toArray();
     }
 
-    private function getEntity(): Model
-    {
-        return $this->relation->getRelated();
-    }
-
-    private function getKeyName(): string
-    {
-        return $this->getEntity()->getKeyName();
-    }
-
     public function getModifyInfo(): array
     {
-        $parent = $this->relation->getParent();
-        $uniqueKeyName = $this->modelService->identifyUniqueIdColumn($parent);
-        $parentTable = $parent->getTable();
-        $parentKeyName = $parent->getKeyName();
+        $model = $this->belongsToMany->getParent();
+        $uniqueKeyName = $this->modelService->identifyUniqueIdColumn($model);
+        $parentTable = $model->getTable();
+        $parentKeyName = $model->getKeyName();
 
         if ($uniqueKeyName === null) {
             // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
         }
 
-        $related = $this->relation->getRelated();
+        $related = $this->belongsToMany->getRelated();
         $relatedTable = $related->getTable();
         $relatedKeyName = $related->getKeyName();
         $uniqueRelatedKeyName = $this->modelService->identifyUniqueIdColumn($related);
@@ -117,24 +107,24 @@ final readonly class BelongsToManyExporter implements RelationExporter
             // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
         }
 
-        $pivotTable = $this->relation->getTable();
-        $parentPivotKeyName = $this->relation->getForeignPivotKeyName();
-        $relatedPivotKeyName = $this->relation->getRelatedPivotKeyName();
+        $pivotTable = $this->belongsToMany->getTable();
+        $parentPivotKeyName = $this->belongsToMany->getForeignPivotKeyName();
+        $relatedPivotKeyName = $this->belongsToMany->getRelatedPivotKeyName();
 
         $parentModifyInfo = [
             'table' => $parentTable,
             'oldKeyName' => $parentKeyName,
             'keyName' => $uniqueKeyName,
-            'autoIncrement' => $this->tableRepository->isAutoincrementColumn($parentTable, $parentKeyName),
-            'nullable' => $this->tableRepository->isNullableColumn($parentTable, $parentKeyName),
+            'autoIncrement' => $this->tableService->isAutoincrementColumn($parentTable, $parentKeyName),
+            'nullable' => $this->tableService->isNullableColumn($parentTable, $parentKeyName),
         ];
 
         $relatedModifyInfo = [
             'table' => $relatedTable,
             'oldKeyName' => $relatedKeyName,
             'keyName' => $uniqueRelatedKeyName,
-            'autoIncrement' => $this->tableRepository->isAutoincrementColumn($relatedTable, $relatedKeyName),
-            'nullable' => $this->tableRepository->isNullableColumn($relatedTable, $relatedKeyName),
+            'autoIncrement' => $this->tableService->isAutoincrementColumn($relatedTable, $relatedKeyName),
+            'nullable' => $this->tableService->isNullableColumn($relatedTable, $relatedKeyName),
         ];
 
         $result = [
@@ -156,8 +146,8 @@ final readonly class BelongsToManyExporter implements RelationExporter
                 'table' => $pivotTable,
                 'oldKeyName' => $pivotIdKeyName,
                 'keyName' => $pivotIdKeyName,
-                'autoIncrement' => $this->tableRepository->isAutoincrementColumn($pivotTable, $pivotIdKeyName),
-                'nullable' => $this->tableRepository->isNullableColumn($pivotTable, $pivotIdKeyName),
+                'autoIncrement' => $this->tableService->isAutoincrementColumn($pivotTable, $pivotIdKeyName),
+                'nullable' => $this->tableService->isNullableColumn($pivotTable, $pivotIdKeyName),
             ];
         }
 

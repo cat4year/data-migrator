@@ -15,12 +15,12 @@ use function Workbench\Database\Factories\now;
 /**
  * @template TModel of \Tests\App\Models\User
  *
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<TModel>
+ * @extends Factory<TModel>
  */
 final class UserFactory extends Factory
 {
     /** The current password being used by the factory. */
-    protected static ?string $password = null;
+    private static ?string $password = null;
 
     /**
      * The name of the factory's corresponding model.
@@ -50,7 +50,7 @@ final class UserFactory extends Factory
      */
     public function unverified(): static
     {
-        return $this->state(static fn (array $attributes) => [
+        return $this->state(static fn (array $attributes): array => [
             'email_verified_at' => null,
         ]);
     }

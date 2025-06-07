@@ -13,10 +13,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('slug_first_slug_second', static function (Blueprint $table): void {
-            $table->id();
-            $table->unsignedInteger('slug_first_id');
-            $table->unsignedInteger('slug_second_id');
+        Schema::create('slug_first_slug_second', static function (Blueprint $blueprint): void {
+            $blueprint->id();
+            $blueprint->unsignedInteger('slug_first_id');
+            $blueprint->unsignedInteger('slug_second_id');
         });
     }
 

@@ -19,7 +19,7 @@ use Illuminate\Support\Collection;
 
 final readonly class RelationFactory
 {
-    public function createByRelation(Relation $relation, ?Collection $data = null): ?RelationExporter
+    public function createByRelation(Relation $relation, ?Collection $collection = null): ?RelationExporter
     {
         return match ($relation::class) {
             //HasOne::class, HasMany::class => HasOneOrManyExporter::create($relation),
@@ -28,7 +28,7 @@ final readonly class RelationFactory
             BelongsTo::class => BelongsToExporter::create($relation),
             MorphToMany::class => MorphToManyExporter::create($relation),
             MorphOne::class, MorphMany::class => MorphOneOrManyExporter::create($relation),
-            MorphTo::class => MorphToExporter::create($relation, $data?->get($relation->getParent()->getTable())),
+            MorphTo::class => MorphToExporter::create($relation, $collection?->get($relation->getParent()->getTable())),
             default => null
         };
     }

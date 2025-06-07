@@ -13,13 +13,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('nullable_no_keys', static function (Blueprint $table): void {
-            $table->id();
-            $table->string('first_name');
-            $table->string('last_name');
-            $table->date('birthday')->nullable();
-            $table->unique(['first_name', 'last_name', 'birthday']);
-            $table->timestamps();
+        Schema::create('nullable_no_keys', static function (Blueprint $blueprint): void {
+            $blueprint->id();
+            $blueprint->string('first_name');
+            $blueprint->string('last_name');
+            $blueprint->date('birthday')->nullable();
+            $blueprint->unique(['first_name', 'last_name', 'birthday']);
+            $blueprint->timestamps();
         });
     }
 

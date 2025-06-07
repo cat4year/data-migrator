@@ -23,58 +23,58 @@ use Throwable;
 final readonly class RelationsExporter
 {
     public function __construct(
-        private ExportConfigurator $configurator,
-        private ExporterState $state,
-        private RelationFactory $factory,
+        private ExportConfigurator $exportConfigurator,
+        private ExporterState $exporterState,
+        private RelationFactory $relationFactory,
         private CollectionMerger $collectionMerger,
-        private TableService $tableRepository,
-        private SupportCollection $handledEntityIdsByTable,
+        private TableService $tableService,
+        private SupportCollection $supportCollection,
     ) {
     }
 
     /**
      * @throws BindingResolutionException
      */
-    public static function create(ExportConfigurator $configurator): self
+    public static function create(): self
     {
         return app()->makeWith(self::class, compact('configurator'));
     }
 
     public function collectRelations(string $entityTable, array $ids = [], int $lvl = 1): ExporterState
     {
-        if (empty($ids) || $lvl > $this->configurator->getMaxRelationDepth()) {
-            return $this->state;
+        if ($ids === [] || $lvl > $this->exportConfigurator->getMaxRelationDepth()) {
+            return $this->exporterState;
         }
 
         $this->collectionMerger->putWithMerge(
-            $this->state->entityIds,
+            $this->exporterState->entityIds,
             $entityTable,
             $ids,
             true
         );
         $this->collectionMerger->putWithMerge(
-            $this->handledEntityIdsByTable,
+            $this->supportCollection,
             $entityTable,
             $ids,
             true
         );
 
-        $entityModel = $this->tableRepository->identifyModelByTable($entityTable);
+        $entityModel = $this->tableService->identifyModelByTable($entityTable);
 
-        if ($entityModel === null) {
-            return $this->state;
+        if (!$entityModel instanceof Model) {
+            return $this->exporterState;
         }
 
         $entityRelations = $this->collectRelationByEntity($entityModel::class, $ids);
 
         $nextLvl = $lvl + 1;
-        foreach ($entityRelations as $relationEntityData) {
-            $relationEntityTable = $relationEntityData['table'];
-            $relationEntityIds = $relationEntityData['ids'];
+        foreach ($entityRelations as $entityRelation) {
+            $relationEntityTable = $entityRelation['table'];
+            $relationEntityIds = $entityRelation['ids'];
 
             if (
-                $this->handledEntityIdsByTable->has($relationEntityTable)
-                && empty(array_diff($relationEntityIds, $this->handledEntityIdsByTable->get($relationEntityTable)))
+                $this->supportCollection->has($relationEntityTable)
+                && array_diff($relationEntityIds, $this->supportCollection->get($relationEntityTable)) === []
             ) {
                 continue;
             }
@@ -82,7 +82,7 @@ final readonly class RelationsExporter
             $this->collectRelations($relationEntityTable, $relationEntityIds, $nextLvl);
         }
 
-        return $this->state;
+        return $this->exporterState;
     }
 
     /**
@@ -93,15 +93,15 @@ final readonly class RelationsExporter
     {
         $relations = $this->getRelations($entityClass);
         $relationEntities = [];
-        foreach ($relations as $relationName => $relationType) {
+        foreach (array_keys($relations) as $relationName) {
             $entityModel = app($entityClass);
             assert($entityModel instanceof Model);
             $relation = $entityModel->$relationName();
             assert($relation instanceof Relation);
 
-            $relationExporter = $this->factory->createByRelation($relation);
+            $relationExporter = $this->relationFactory->createByRelation($relation);
 
-            if ($relationExporter === null) {
+            if (!$relationExporter instanceof RelationExporter) {
                 continue;
             }
 
@@ -112,22 +112,21 @@ final readonly class RelationsExporter
             }
 
             // check: не помню как планировал использовать. надо вернуть в основной поток? Нужен ли хэш в виде ключа?
-            if ($this->state->relationsInfo->has($entityClass)) {
-                $stateRelationsByEntity = $this->state->relationsInfo->get($entityClass);
+            if ($this->exporterState->relationsInfo->has($entityClass)) {
+                $stateRelationsByEntity = $this->exporterState->relationsInfo->get($entityClass);
             }
+
             $stateRelationsByEntity[$relationName] = $relation;
-            $this->state->relationsInfo->put($entityClass, $stateRelationsByEntity);
+            $this->exporterState->relationsInfo->put($entityClass, $stateRelationsByEntity);
 
             $relationEntities = $this->relationEntitiesMerge($relationEntities, $relationEntitiesConcreteRelation);
         }
 
-        $relationEntities = array_map(static function ($item) {
+        return array_map(static function (array $item): array {
             $item['ids'] = array_unique($item['ids']);
 
             return $item;
         }, $relationEntities);
-
-        return $relationEntities;
     }
 
     /**
@@ -139,14 +138,14 @@ final readonly class RelationsExporter
      */
     private function getRelations(string $class): array
     {
-        $reflect = new ReflectionClass($class);
+        $reflectionClass = new ReflectionClass($class);
         $relations = [];
 
-        foreach ($reflect->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+        foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             /** @var ReflectionMethod $method */
             if (
                 $method->hasReturnType()
-                && in_array((string) $method->getReturnType(), $this->configurator->getSupportedRelations(), true)
+                && in_array((string) $method->getReturnType(), $this->exportConfigurator->getSupportedRelations(), true)
             ) {
                 $relations[$method->getName()] = (string) $method->getReturnType();
             }
@@ -176,47 +175,5 @@ final readonly class RelationsExporter
         }
 
         return $relationEntities;
-    }
-
-    private function addMetaUniqueDataForTables(array $modifiedResult): array
-    {
-
-
-
-        return $modifiedResult;
-    }
-
-    /**
-     * @todo можно мемоизировать
-     */
-    private function identifyUniqueAttribute(array $tableData): string
-    {
-        $tableColumnMap = config('data-migrator.table_unique_column_map');
-        if (isset($tableColumnMap[$model->getTable()])) {
-            return $tableColumnMap[$model->getTable()];
-        }
-        if (config('data-migrator.table_unique_column_map') === true) {
-
-        }
-
-        foreach ($tableData['modifiedAttributes'] as $attributeKey => $modifyInfo) {
-            if (isset($modifyInfo['isPrimaryKey']) && $modifyInfo['isPrimaryKey'] === true) {
-                return $attributeKey;
-            }
-        }
-
-        if (config('data-migrator.try_use_index_for_sync_on_import') === true) { //todo: перенести это на уровень экспорта
-            $indexes = Schema::getIndexes($tableData['name']);
-
-            foreach ($indexes as $index){
-                if($index['primary'] === true){
-                    continue;
-                }
-
-                //$index['columns']
-            }
-        }
-
-        throw new RuntimeException('Не смогли определить уникальный id для таблицы ');
     }
 }

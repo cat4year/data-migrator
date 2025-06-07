@@ -13,16 +13,16 @@ use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 final readonly class HasOneOrManyExporter implements RelationExporter
 {
     public function __construct(
-        private HasOneOrMany $relation,
+        private HasOneOrMany $hasOneOrMany,
         private ModelService $modelService,
-        private TableService $tableRepository,
+        private TableService $tableService,
     ) {
     }
 
     /**
      * @throws BindingResolutionException
      */
-    public static function create(HasOneOrMany $relation): self
+    public static function create(HasOneOrMany $hasOneOrMany): self
     {
         return app()->makeWith(self::class, compact('relation'));
     }
@@ -31,7 +31,7 @@ final readonly class HasOneOrManyExporter implements RelationExporter
     {
         $ids = $this->getUsedIds($foreignIds);
 
-        $table = $this->relation->getModel()->getTable();
+        $table = $this->hasOneOrMany->getModel()->getTable();
 
         return [
             $table => [
@@ -44,10 +44,10 @@ final readonly class HasOneOrManyExporter implements RelationExporter
 
     private function getUsedIds(array $foreignIds): array
     {
-        $idKey = $this->relation->getRelated()->getKeyName();
-        $foreignKey = $this->relation->getForeignKeyName();
+        $idKey = $this->hasOneOrMany->getRelated()->getKeyName();
+        $foreignKey = $this->hasOneOrMany->getForeignKeyName();
 
-        return $this->relation->getRelated()::query()
+        return $this->hasOneOrMany->getRelated()::query()
             ->select()
             ->whereNotNull($foreignKey)
             ->whereIn($foreignKey, $foreignIds)
@@ -58,7 +58,7 @@ final readonly class HasOneOrManyExporter implements RelationExporter
 
     private function getEntity(): Model
     {
-        return $this->relation->getRelated();
+        return $this->hasOneOrMany->getRelated();
     }
 
     private function getKeyName(): string
@@ -68,16 +68,16 @@ final readonly class HasOneOrManyExporter implements RelationExporter
 
     public function getModifyInfo(): array
     {
-        $parent = $this->relation->getParent();
-        $parentTable = $parent->getTable();
-        $parentKeyName = $parent->getKeyName();
-        $uniqueKeyName = $this->modelService->identifyUniqueIdColumn($parent);
+        $model = $this->hasOneOrMany->getParent();
+        $parentTable = $model->getTable();
+        $parentKeyName = $model->getKeyName();
+        $uniqueKeyName = $this->modelService->identifyUniqueIdColumn($model);
 
         if ($uniqueKeyName === null) {
             // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
         }
 
-        $related = $this->relation->getRelated();
+        $related = $this->hasOneOrMany->getRelated();
         $relatedTable = $related->getTable();
         $uniqueRelatedKeyName = $this->modelService->identifyUniqueIdColumn($related);
 
@@ -85,8 +85,8 @@ final readonly class HasOneOrManyExporter implements RelationExporter
             // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
         }
 
-        $localKeyName = $this->relation->getLocalKeyName();
-        $foreignKeyName = $this->relation->getForeignKeyName();
+        $localKeyName = $this->hasOneOrMany->getLocalKeyName();
+        $foreignKeyName = $this->hasOneOrMany->getForeignKeyName();
 
         return [
             $parentTable => [
@@ -95,11 +95,11 @@ final readonly class HasOneOrManyExporter implements RelationExporter
                     'oldKeyName' => $parentKeyName,
                     'keyName' => $uniqueKeyName,
                     'isPrimaryKey' => true,
-                    'autoIncrement' => $this->tableRepository->isAutoincrementColumn(
+                    'autoIncrement' => $this->tableService->isAutoincrementColumn(
                         $parentTable,
                         $parentKeyName
                     ),
-                    'nullable' => $this->tableRepository->isNullableColumn(
+                    'nullable' => $this->tableService->isNullableColumn(
                         $parentTable,
                         $parentKeyName
                     ),
@@ -110,7 +110,7 @@ final readonly class HasOneOrManyExporter implements RelationExporter
                     'table' => $parentTable,
                     'oldKeyName' => $localKeyName,
                     'keyName' => $uniqueRelatedKeyName,
-                    'nullable' => $this->tableRepository->isNullableColumn(
+                    'nullable' => $this->tableService->isNullableColumn(
                         $relatedTable,
                         $foreignKeyName
                     ),

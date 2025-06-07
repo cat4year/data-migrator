@@ -10,21 +10,19 @@ use InvalidArgumentException;
 final readonly class CollectionMerger
 {
     public function putWithMerge(
-        SupportCollection $collection,
+        SupportCollection $supportCollection,
         string $key,
         SupportCollection|array $data,
         bool $forceUnique = false
     ): SupportCollection|array {
-        if (! $collection->has($key)) {
-            $collection->put($key, $data);
+        if (! $supportCollection->has($key)) {
+            $supportCollection->put($key, $data);
 
             return $data;
         }
 
-        $currentItem = $collection->get($key);
-        if (! is_array($currentItem) && ! $currentItem instanceof SupportCollection) {
-            throw new InvalidArgumentException('Attribute collection was collection of collections|arrays');
-        }
+        $currentItem = $supportCollection->get($key);
+        throw_if(! is_array($currentItem) && ! $currentItem instanceof SupportCollection, new InvalidArgumentException('Attribute collection was collection of collections|arrays'));
 
         $currentCollection = is_array($currentItem) ? collect($currentItem) : $currentItem;
         $currentCollection = $currentCollection->merge($data);
@@ -33,13 +31,9 @@ final readonly class CollectionMerger
             $currentCollection = $currentCollection->unique();
         }
 
-        if (is_array($currentItem)) {
-            $mergedValues = $currentCollection->toArray();
-        } else {
-            $mergedValues = $currentCollection;
-        }
+        $mergedValues = is_array($currentItem) ? $currentCollection->toArray() : $currentCollection;
 
-        $collection->put($key, $mergedValues);
+        $supportCollection->put($key, $mergedValues);
 
         return $mergedValues;
     }

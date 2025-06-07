@@ -38,7 +38,7 @@ final class MigratorCreator extends MigrationCreator
     /**
      * @throws FileNotFoundException
      */
-    protected function getDataStub(): string
+    private function getDataStub(): string
     {
         $stub = $this->files->exists($customPath = $this->customStubPath.'/data-migration.model.stub')
             ? $customPath
@@ -53,7 +53,7 @@ final class MigratorCreator extends MigrationCreator
         return __DIR__.'/../../../stubs';
     }
 
-    protected function populateDataStub(string $stub, ?string $data): string
+    private function populateDataStub(string $stub, ?string $data): string
     {
         if ($data !== null) {
             $stub = str_replace(

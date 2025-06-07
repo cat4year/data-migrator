@@ -18,7 +18,7 @@ final class SlugModelsSeeder extends Seeder
         $first = SlugFirstFactory::new()->createMany(3);
         $second = SlugSecondFactory::new()->recycle($first)->createMany(3);
         SlugThreeFactory::new()->recycle([$second, $first])->createMany(3);
-        $first->each(static fn (SlugFirst $item) => $item->slugSeconds()->sync([$second->random()->id]));
+        $first->each(static fn (SlugFirst $slugFirst) => $slugFirst->slugSeconds()->sync([$second->random()->id]));
         $first->first()->slugSecondables()->sync([1, 2]);
         $first->last()->slugSecondables()->sync([3]);
 

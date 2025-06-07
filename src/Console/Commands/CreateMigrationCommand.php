@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Console\Commands;
 
+use Illuminate\Support\Facades\File;
 use Cat4year\DataMigrator\Services\Configurations\BaseConfiguration;
 use Cat4year\DataMigrator\Services\Configurations\DataMigratorConfiguration;
 use Cat4year\DataMigrator\Services\DataMigrator\Migrator;
-use File;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use SplFileInfo;
@@ -78,9 +78,9 @@ final class CreateMigrationCommand extends Command
         $result = [];
 
         $models = $this->getModels();
-        foreach ($models as $modelClass) {
-            $table = app($modelClass)->getTable();
-            $result[$table] = $modelClass;
+        foreach ($models as $model) {
+            $table = app($model)->getTable();
+            $result[$table] = $model;
         }
 
         return $result;
@@ -134,11 +134,11 @@ final class CreateMigrationCommand extends Command
 
                 return $namespace.str_replace('/', '\\', $filePath);
             })
-            ->filter(static fn ($class) => class_exists($class) && is_subclass_of($class, Model::class))->values()->toArray();
+            ->filter(static fn ($class): bool => class_exists($class) && is_subclass_of($class, Model::class))->values()->toArray();
     }
 
     private function getBasePath(): string
     {
-        return config('data-migrator.migrations_path') ?? database_path('migrations');
+        return config('data-migrator.migrations_path', database_path('migrations'));
     }
 }

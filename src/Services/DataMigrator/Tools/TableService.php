@@ -60,9 +60,7 @@ final readonly class TableService
             }
         }
 
-        if ($autoIncKey === $stableKey) {
-            throw new RuntimeException;
-        }
+        throw_if($autoIncKey === $stableKey, new RuntimeException);
 
         return $stableKey;
     }
@@ -75,7 +73,7 @@ final readonly class TableService
         foreach ($indexes as $index) {
             if (
                 $index['unique'] === true
-                && empty(array_diff($index['columns'], $nonAutoIncrementColumns))
+                && array_diff($index['columns'], $nonAutoIncrementColumns) === []
             ) {
                 if (count($index['columns']) === 1) {
                     return current($index['columns']);
@@ -92,8 +90,8 @@ final readonly class TableService
     {
         $columns = $this->schemaState->columns($tableName);
         return array_map(
-            static fn($column) => $column['name'],
-            array_filter($columns, static fn($column) => !$column['auto_increment'])
+            static fn(array $column) => $column['name'],
+            array_filter($columns, static fn($column): bool => !$column['auto_increment'])
         );
     }
 
@@ -127,9 +125,7 @@ final readonly class TableService
         $columns = $this->schemaState->columns($tableName);
         $columnNullableByName = array_column($columns, 'auto_increment', 'name');
 
-        if (!isset($columnNullableByName[$columnName])) {
-            throw new RuntimeException(sprintf('Не обнаружена колонка %s в таблице %s', $columnName, $tableName));
-        }
+        throw_unless(isset($columnNullableByName[$columnName]), new RuntimeException(sprintf('Не обнаружена колонка %s в таблице %s', $columnName, $tableName)));
 
         return $columnNullableByName[$columnName] === true;
     }

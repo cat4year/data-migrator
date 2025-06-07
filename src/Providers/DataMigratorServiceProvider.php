@@ -30,7 +30,7 @@ final class DataMigratorServiceProvider extends ServiceProvider
         require_once(__DIR__.'/../../src/Helpers/app.php');
 
         $this->registerCreator();
-        $this->app->singleton(SchemaState::class, static fn($app) => new SchemaState());
+        $this->app->singleton(SchemaState::class, static fn($app): SchemaState => new SchemaState());
     }
 
     public function boot(): void
@@ -45,11 +45,11 @@ final class DataMigratorServiceProvider extends ServiceProvider
         ]);
     }
 
-    protected function registerCreator(): void
+    private function registerCreator(): void
     {
         $this->app->singleton(
             'migration-data.creator',
-            static fn ($app) => new MigratorCreator($app['files'], $app->basePath('stubs'))
+            static fn ($app): MigratorCreator => new MigratorCreator($app['files'], $app->basePath('stubs'))
         );
     }
 }

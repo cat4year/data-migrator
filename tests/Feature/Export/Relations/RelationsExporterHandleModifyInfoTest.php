@@ -31,12 +31,12 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
     public static function provide_collect_belongs_to_relations(): array
     {
         return [
-            'handleModifyInfo SlugFirst belongsTo' => [static function () {
+            'handleModifyInfo SlugFirst belongsTo' => [static function (): array {
                 $relationName = 'slugThree';
-                $relationModel = SlugThreeFactory::new()->makeOne(['id' => 1, 'slug_second_id' => null]);
+                $slugThree = SlugThreeFactory::new()->makeOne(['id' => 1, 'slug_second_id' => null]);
                 $slugFirst = SlugFirstFactory::new()
-                    ->makeOne(['slug_three_id' => $relationModel->id])
-                    ->setRelation($relationName, $relationModel);
+                    ->makeOne(['slug_three_id' => $slugThree->id])
+                    ->setRelation($relationName, $slugThree);
                 $slugFirst2 = SlugFirstFactory::new()
                     ->makeOne(['slug_three_id' => null]);
 
@@ -135,12 +135,12 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
     public static function provide_collect_morph_one_relations(): array
     {
         return [
-            'handleModifyInfo SlugFirst morphOne' => [static function () {
+            'handleModifyInfo SlugFirst morphOne' => [static function (): array {
                 $relationName = 'slugThree';
-                $relationModel = SlugThreeFactory::new()->makeOne(['id' => 1, 'slug_second_id' => null]);
+                $slugThree = SlugThreeFactory::new()->makeOne(['id' => 1, 'slug_second_id' => null]);
                 $slugFirst = SlugFirstFactory::new()
-                                             ->makeOne(['slug_three_id' => $relationModel->id])
-                                             ->setRelation($relationName, $relationModel);
+                                             ->makeOne(['slug_three_id' => $slugThree->id])
+                                             ->setRelation($relationName, $slugThree);
                 $slugFirst2 = SlugFirstFactory::new()
                                               ->makeOne(['slug_three_id' => null]);
 

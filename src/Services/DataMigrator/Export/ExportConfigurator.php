@@ -48,20 +48,18 @@ final class ExportConfigurator
     private array $ids = [];
 
     public function __construct(
-        private readonly MigrationDataSourceFormat $sourceFormat,
-        private Filesystem $disk
+        private readonly MigrationDataSourceFormat $migrationDataSourceFormat,
+        private Filesystem $filesystem
     ) {
     }
 
     public static function create(): self
     {
-        $configurator = app(self::class);
+        $exportConfigurator = app(self::class);
 
-        if (! $configurator instanceof self) {
-            throw new TypeError('Неверный тип конфигуратора');
-        }
+        throw_unless($exportConfigurator instanceof self, new TypeError('Неверный тип конфигуратора'));
 
-        return $configurator;
+        return $exportConfigurator;
     }
 
     public function withRelations(): bool
@@ -78,13 +76,13 @@ final class ExportConfigurator
 
     public function getSourceFormat(): MigrationDataSourceFormat
     {
-        return $this->sourceFormat;
+        return $this->migrationDataSourceFormat;
     }
 
     public function makeSourceBaseName(string $fileName = '', string $format = ''): string
     {
-        if (empty($format)) {
-            $format = match ($this->sourceFormat::class) {
+        if ($format === '' || $format === '0') {
+            $format = match ($this->migrationDataSourceFormat::class) {
                 PhpMigrationDataSourceFormat::class => 'php',
                 XmlMigrationDataSourceFormat::class => 'xml',
             };
@@ -103,17 +101,12 @@ final class ExportConfigurator
             return str_replace('//', '/', $fullPath);
         }
 
-        return $this->getDisk()->path($pathWithFormat);
+        return $this->filesystem->path($pathWithFormat);
     }
 
-    private function getDisk(): Filesystem
+    public function setDisk(Filesystem $filesystem): self
     {
-        return $this->disk;
-    }
-
-    public function setDisk(Filesystem $disk): self
-    {
-        $this->disk = $disk;
+        $this->filesystem = $filesystem;
 
         return $this;
     }
