@@ -12,7 +12,7 @@ final readonly class ExportModifySimpleColumn implements ExportModifyColumn, Arr
     public function __construct(
         private string $tableName,
         private string $keyName,
-        private SyncId $syncId,
+        private SyncId $uniqueKeyName,
         private bool $nullable,
         private bool $autoincrement,
         private bool $isPrimaryKey = true,
@@ -42,7 +42,7 @@ final readonly class ExportModifySimpleColumn implements ExportModifyColumn, Arr
 
     public function getSourceUniqueKeyName(): SyncId
     {
-        return $this->syncId;
+        return $this->uniqueKeyName;
     }
 
     public function isNullable(): bool
@@ -63,11 +63,11 @@ final readonly class ExportModifySimpleColumn implements ExportModifyColumn, Arr
 
     public static function fromArray(array $array): self
     {
-        $syncId = new SyncId($array['uniqueKeyName']);
+        $uniqueKeyName = new SyncId($array['uniqueKeyName']);
         return new self(
             tableName: $array['tableName'],
             keyName: $array['keyName'],
-            uniqueKeyName: $syncId,
+            uniqueKeyName: $uniqueKeyName,
             nullable: $array['nullable'],
             autoincrement: $array['autoincrement'],
             isPrimaryKey: $array['isPrimaryKey'],
@@ -79,7 +79,7 @@ final readonly class ExportModifySimpleColumn implements ExportModifyColumn, Arr
         return [
             'tableName' => $this->tableName,
             'keyName' => $this->keyName,
-            'uniqueKeyName' => $this->syncId,
+            'uniqueKeyName' => $this->uniqueKeyName,
             'nullable' => $this->nullable,
             'autoincrement' => $this->autoincrement,
             'isPrimaryKey' => $this->isPrimaryKey,

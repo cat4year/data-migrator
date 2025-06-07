@@ -13,7 +13,7 @@ final readonly class ExportModifyForeignColumn implements ExportModifyColumn, Ar
         private string $tableName,
         private string $keyName,
         private string $foreignTableName,
-        private SyncId $syncId,
+        private SyncId $foreignUniqueKeyName,
         private string $foreignOldKeyName,
         private bool $nullable,
         private bool $autoincrement = false,
@@ -44,7 +44,7 @@ final readonly class ExportModifyForeignColumn implements ExportModifyColumn, Ar
 
     public function getSourceUniqueKeyName(): SyncId
     {
-        return $this->syncId;
+        return $this->foreignUniqueKeyName;
     }
 
     public function isNullable(): bool
@@ -82,7 +82,7 @@ final readonly class ExportModifyForeignColumn implements ExportModifyColumn, Ar
             'tableName' => $this->tableName,
             'keyName' => $this->keyName,
             'foreignTableName' => $this->foreignTableName,
-            'foreignUniqueKeyName' => $this->syncId,
+            'foreignUniqueKeyName' => $this->foreignUniqueKeyName,
             'foreignOldKeyName' => $this->foreignOldKeyName,
             'nullable' => $this->nullable,
             'autoincrement' => $this->autoincrement,

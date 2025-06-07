@@ -41,10 +41,10 @@ final class RelationsExporterCollectTest extends BaseTestCase
         ?string $relationTypeClass = null,
     ): void {
         $this->seed($seederClass);
-        $exportConfigurator = app(ExportConfigurator::class); // use mock instead?
-        $exportConfigurator->setMaxRelationDepth($maxDepth);
+        $configurator = app(ExportConfigurator::class); // use mock instead?
+        $configurator->setMaxRelationDepth($maxDepth);
         if ($relationTypeClass !== null) {
-            $exportConfigurator->setSupportedRelations([$relationTypeClass]);
+            $configurator->setSupportedRelations([$relationTypeClass]);
         }
 
         $relationsExporter = app()->makeWith(RelationsExporter::class, compact('configurator'));

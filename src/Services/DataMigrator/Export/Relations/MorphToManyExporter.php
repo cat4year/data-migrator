@@ -30,7 +30,7 @@ final readonly class MorphToManyExporter implements RelationExporter
      */
     public static function create(MorphToMany $morphToMany): self
     {
-        return app()->makeWith(self::class, compact('relation'));
+        return app()->makeWith(self::class, compact('morphToMany'));
     }
 
     public function makeExportData(array $foreignIds): array

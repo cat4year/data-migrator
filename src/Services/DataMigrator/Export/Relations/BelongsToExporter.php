@@ -26,7 +26,7 @@ final readonly class BelongsToExporter implements RelationExporter
      */
     public static function create(BelongsTo $belongsTo): self
     {
-        return app()->makeWith(self::class, compact('relation'));
+        return app()->makeWith(self::class, compact('belongsTo'));
     }
 
     public function makeExportData(array $foreignIds): array

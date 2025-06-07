@@ -44,10 +44,10 @@ final class ExporterExportDataTest extends BaseTestCase
     ): void
     {
         $this->seed($seederClass);
-        $exportConfigurator = app(ExportConfigurator::class);
-        $exportConfigurator->setIds($ids)->setMaxRelationDepth($maxDepth);
+        $configurator = app(ExportConfigurator::class);
+        $configurator->setIds($ids)->setMaxRelationDepth($maxDepth);
         if ($relationTypeClass !== null) {
-            $exportConfigurator->setSupportedRelations([$relationTypeClass]);
+            $configurator->setSupportedRelations([$relationTypeClass]);
         }
 
         $relationsExporter = app()->makeWith(RelationsExporter::class, compact('configurator'));
@@ -352,10 +352,10 @@ final class ExporterExportDataTest extends BaseTestCase
     ): void
     {
         $this->seed($seederClass);
-        $exportConfigurator = app(ExportConfigurator::class);
-        $exportConfigurator->setIds($ids)->setMaxRelationDepth($maxDepth);
+        $configurator = app(ExportConfigurator::class);
+        $configurator->setIds($ids)->setMaxRelationDepth($maxDepth);
         if ($relationTypeClass !== null) {
-            $exportConfigurator->setSupportedRelations([$relationTypeClass]);
+            $configurator->setSupportedRelations([$relationTypeClass]);
         }
 
         $relationsExporter = app()->makeWith(RelationsExporter::class, compact('configurator'));

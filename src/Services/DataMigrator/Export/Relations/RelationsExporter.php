@@ -23,7 +23,7 @@ use Throwable;
 final readonly class RelationsExporter
 {
     public function __construct(
-        private ExportConfigurator $exportConfigurator,
+        private ExportConfigurator $configurator,
         private ExporterState $exporterState,
         private RelationFactory $relationFactory,
         private CollectionMerger $collectionMerger,
@@ -35,14 +35,14 @@ final readonly class RelationsExporter
     /**
      * @throws BindingResolutionException
      */
-    public static function create(): self
+    public static function create(ExportConfigurator $configurator): self
     {
         return app()->makeWith(self::class, compact('configurator'));
     }
 
     public function collectRelations(string $entityTable, array $ids = [], int $lvl = 1): ExporterState
     {
-        if ($ids === [] || $lvl > $this->exportConfigurator->getMaxRelationDepth()) {
+        if ($ids === [] || $lvl > $this->configurator->getMaxRelationDepth()) {
             return $this->exporterState;
         }
 
@@ -145,7 +145,7 @@ final readonly class RelationsExporter
             /** @var ReflectionMethod $method */
             if (
                 $method->hasReturnType()
-                && in_array((string) $method->getReturnType(), $this->exportConfigurator->getSupportedRelations(), true)
+                && in_array((string) $method->getReturnType(), $this->configurator->getSupportedRelations(), true)
             ) {
                 $relations[$method->getName()] = (string) $method->getReturnType();
             }

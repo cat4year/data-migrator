@@ -31,7 +31,7 @@ final readonly class MorphOneOrManyExporter implements RelationExporter
      */
     public static function create(MorphOneOrMany $morphOneOrMany): self
     {
-        return app()->makeWith(self::class, compact('relation'));
+        return app()->makeWith(self::class, compact('morphOneOrMany'));
     }
 
     public function makeExportData(array $foreignIds): array

@@ -21,10 +21,10 @@ use stdClass;
 final readonly class Exporter
 {
     public function __construct(
-        private Model $model,
-        private ExportConfigurator $exportConfigurator,
-        private RelationsExporter $relationsExporter,
-        private ExportSorter $exportSorter,
+        private Model $entity,
+        private ExportConfigurator $configurator,
+        private RelationsExporter $relationManager,
+        private ExportSorter $sorter,
         private TableService $tableService,
         private SyncIdState $syncIdState,
     ) {
@@ -48,7 +48,7 @@ final readonly class Exporter
         $params = [
             'entity' => is_string($entity) ? app($entity) : $entity,
             'configurator' => $exportConfigurator,
-            'relationManager' => RelationsExporter::create(),
+            'relationManager' => RelationsExporter::create($exportConfigurator),
         ];
 
         return app()->makeWith(self::class, $params);
@@ -69,14 +69,14 @@ final readonly class Exporter
      */
     public function exportData(): array
     {
-        if ($this->exportConfigurator->getIds() === []) {
-            $idKey = $this->model->getKeyName();
-            $ids = $this->model::query()
+        if ($this->configurator->getIds() === []) {
+            $idKey = $this->entity->getKeyName();
+            $ids = $this->entity::query()
                 ->select($idKey)
                 ->pluck($idKey)
                 ->toArray();
         } else {
-            $ids = $this->exportConfigurator->getIds();
+            $ids = $this->configurator->getIds();
         }
 
         throw_if(empty($ids), new RuntimeException('Empty ids for export entity'));
@@ -89,8 +89,8 @@ final readonly class Exporter
 
     public function save(array $exportData): string
     {
-        $migrationPath = $this->exportConfigurator->makeSourceFullPath();
-        $this->exportConfigurator->getSourceFormat()->save($exportData, $migrationPath);
+        $migrationPath = $this->configurator->makeSourceFullPath();
+        $this->configurator->getSourceFormat()->save($exportData, $migrationPath);
 
         return $migrationPath;
     }
@@ -102,15 +102,15 @@ final readonly class Exporter
      */
     public function makeEntityData(array $ids): array
     {
-        $table = $this->model->getTable();
+        $table = $this->entity->getTable();
         $syncId = $this->syncIdState->tableSyncId($table);
-        $mainEntityResult = $this->makeItems($table, $ids, $syncId, $this->model->getKeyName());
+        $mainEntityResult = $this->makeItems($table, $ids, $syncId, $this->entity->getKeyName());
 
         if ($mainEntityResult === []) {
             return [];
         }
 
-        if (! $this->exportConfigurator->withRelations()) {
+        if (! $this->configurator->withRelations()) {
             $resultMainData = [
                 'table' => $table,
                 'items' => $mainEntityResult,
@@ -120,7 +120,7 @@ final readonly class Exporter
             return [$table => $resultMainData];
         }
 
-        $exporterState = $this->relationsExporter->collectRelations($table, $ids); // todo: перекрывает result
+        $exporterState = $this->relationManager->collectRelations($table, $ids); // todo: перекрывает result
 
         /** @var string $entityTable */
         foreach ($exporterState->entityIds as $entityTable => $entityIds) {
@@ -156,7 +156,7 @@ final readonly class Exporter
 
         //$resultWithUniqueColumns = $this->syncIdAttacher->attachSyncIds($result);
 
-        return $this->exportSorter->sort($result);
+        return $this->sorter->sort($result);
     }
 
     /**
