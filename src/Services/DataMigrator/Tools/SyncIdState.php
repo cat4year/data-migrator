@@ -86,7 +86,7 @@ final class SyncIdState
         }
 
         throw_if(empty($this->potentialSyncIds[$tableName]), new RuntimeException(
-            'Не смогли определить уникальный идентификатор для таблицы '.$tableName
+            'Не смогли определить уникальный идентификатор для таблицы ' . $tableName
         ));
 
         return $this->potentialSyncIds[$tableName];
@@ -105,7 +105,7 @@ final class SyncIdState
         try {
             $model = $this->tableService->identifyModelByTable($tableName);
 
-            throw_if(! $model instanceof Model, new RuntimeException('Модель не идентифицирована по таблице '.$tableName));
+            throw_if(! $model instanceof Model, new RuntimeException('Модель не идентифицирована по таблице ' . $tableName));
 
             if (! $model->getIncrementing() && ! $this->hasPotentialSyncId($tableName, $model->getKeyName())) {
                 // нет гарантии, что разработчик не переопределил $incrementing в модели ошибочно. Нужна доп. проверка в БД

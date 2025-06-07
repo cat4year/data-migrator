@@ -10,7 +10,7 @@ final class ExportModifyInfo
 
     public static function add(ExportModifyColumn $exportModifyColumn): void
     {
-        $hash = $exportModifyColumn->getKeyName().'|'.$exportModifyColumn->getTableName();
+        $hash = $exportModifyColumn->getKeyName() . '|' . $exportModifyColumn->getTableName();
         if (isset(self::$state[$hash])) {
             return;
         }

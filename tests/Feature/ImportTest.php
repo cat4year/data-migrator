@@ -18,7 +18,7 @@ final class ImportTest extends BaseTestCase
     public function test_import_on_empty_database(): void
     {
         $importer = app(Importer::class);
-        $fullPath = __DIR__.'/Fixtures/new_export.php';
+        $fullPath = __DIR__ . '/Fixtures/new_export.php';
 
         $importData = ImportData::createFromFile($fullPath);
         $importer->import($importData);
@@ -34,7 +34,7 @@ final class ImportTest extends BaseTestCase
     public function test_import_on_filled_database(): void
     {
         $importer = app(Importer::class);
-        $fullPath = __DIR__.'/Fixtures/new_export.php';
+        $fullPath = __DIR__ . '/Fixtures/new_export.php';
 
         $importData = ImportData::createFromFile($fullPath);
         $importer->import($importData);
@@ -53,7 +53,7 @@ final class ImportTest extends BaseTestCase
     {
         $this->markTestSkipped();
         $importer = app(Importer::class);
-        $fullPath = __DIR__.'/Fixtures/export.php';
+        $fullPath = __DIR__ . '/Fixtures/export.php';
 
         $importData = ImportData::createFromFile($fullPath);
         $importer->import($importData);

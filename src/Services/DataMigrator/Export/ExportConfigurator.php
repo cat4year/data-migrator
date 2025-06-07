@@ -88,7 +88,7 @@ final class ExportConfigurator
             };
         }
 
-        return ($fileName ?: $this->fileName).'.'.$format;
+        return ($fileName ?: $this->fileName) . '.' . $format;
     }
 
     public function makeSourceFullPath(string $fileName = '', string $format = ''): string
@@ -96,7 +96,7 @@ final class ExportConfigurator
         $pathWithFormat = $this->makeSourceBaseName($fileName, $format);
 
         if ($this->directoryPath !== null) {
-            $fullPath = $this->directoryPath.'/'.$pathWithFormat;
+            $fullPath = $this->directoryPath . '/' . $pathWithFormat;
 
             return str_replace('//', '/', $fullPath);
         }

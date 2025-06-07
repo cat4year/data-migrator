@@ -11,7 +11,7 @@ final readonly class ArrayToPhp
 {
     public function __construct(
         private Filesystem $filesystem,
-        private string $stubPath = __DIR__.'/array-migration-data.stub'
+        private string $stubPath = __DIR__ . '/array-migration-data.stub'
     ) {
     }
 
@@ -30,7 +30,7 @@ final readonly class ArrayToPhp
      */
     private function getDataStub(): string
     {
-        throw_unless($this->filesystem->exists($this->stubPath), new FileNotFoundException($this->stubPath.' отсутствует. Он нужен для корректной работы'));
+        throw_unless($this->filesystem->exists($this->stubPath), new FileNotFoundException($this->stubPath . ' отсутствует. Он нужен для корректной работы'));
 
         return $this->filesystem->get($this->stubPath);
     }

@@ -25,11 +25,11 @@ final class DataMigratorServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__.'/../../config/data-migrator.php',
+            __DIR__ . '/../../config/data-migrator.php',
             'data-migrator'
         );
 
-        require_once __DIR__.'/../../src/Helpers/app.php';
+        require_once __DIR__ . '/../../src/Helpers/app.php';
 
         $this->registerCreator();
         $this->app->singleton(SchemaState::class, static fn ($app): SchemaState => new SchemaState);
@@ -43,7 +43,7 @@ final class DataMigratorServiceProvider extends ServiceProvider
         ]);
 
         $this->publishes([
-            __DIR__.'/../../config/data-migrator.php' => config_path('data-migrator.php'),
+            __DIR__ . '/../../config/data-migrator.php' => config_path('data-migrator.php'),
         ]);
     }
 

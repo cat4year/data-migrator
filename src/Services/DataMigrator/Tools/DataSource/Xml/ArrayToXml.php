@@ -106,7 +106,7 @@ final class ArrayToXml
     private function ensureValidDomProperties(array $domProperties): void
     {
         foreach (array_keys($domProperties) as $key) {
-            throw_unless(property_exists($this->domDocument, $key), new RuntimeException($key.' is not a valid property of DOMDocument'));
+            throw_unless(property_exists($this->domDocument, $key), new RuntimeException($key . ' is not a valid property of DOMDocument'));
         }
     }
 
@@ -203,7 +203,7 @@ final class ArrayToXml
     private function addNumericNode(DOMElement $domElement, mixed $value): void
     {
         foreach ($value as $key => $item) {
-            $this->convertElement($domElement, [$this->numericTagNamePrefix.$key => $item]);
+            $this->convertElement($domElement, [$this->numericTagNamePrefix . $key => $item]);
         }
     }
 

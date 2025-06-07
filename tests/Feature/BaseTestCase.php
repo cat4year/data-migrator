@@ -17,10 +17,10 @@ abstract class BaseTestCase extends TestCase
     #[Override]
     protected function getEnvironmentSetUp($app): void
     {
-        $app->useStoragePath(realpath(__DIR__.'/../../storage'));
+        $app->useStoragePath(realpath(__DIR__ . '/../../storage'));
         $app->make(Repository::class)->set('filesystems.disks.public.root', app()->storagePath('/app/public'));
 
-        $app->useEnvironmentPath(__DIR__.'/../../workbench/.env.testing');
+        $app->useEnvironmentPath(__DIR__ . '/../../workbench/.env.testing');
         $app->bootstrapWith([LoadEnvironmentVariables::class]);
     }
 }

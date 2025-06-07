@@ -78,7 +78,7 @@ final class Attachment extends Model
                 return $this->original_name;
             }
 
-            return $this->name.'.'.$this->extension;
+            return $this->name . '.' . $this->extension;
         });
     }
 
@@ -88,7 +88,7 @@ final class Attachment extends Model
             return null;
         }
 
-        return $this->path.$this->name.'.'.$this->extension;
+        return $this->path . $this->name . '.' . $this->extension;
     }
 
     /**

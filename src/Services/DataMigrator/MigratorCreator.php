@@ -41,9 +41,9 @@ final class MigratorCreator extends MigrationCreator
      */
     private function getDataStub(): string
     {
-        $stub = $this->files->exists($customPath = $this->customStubPath.'/data-migration.model.stub')
+        $stub = $this->files->exists($customPath = $this->customStubPath . '/data-migration.model.stub')
             ? $customPath
-            : $this->stubPath().'/data-migration.model.stub';
+            : $this->stubPath() . '/data-migration.model.stub';
 
         return $this->files->get($stub);
     }
@@ -51,7 +51,7 @@ final class MigratorCreator extends MigrationCreator
     #[Override]
     public function stubPath(): string
     {
-        return __DIR__.'/../../../stubs';
+        return __DIR__ . '/../../../stubs';
     }
 
     private function populateDataStub(string $stub, ?string $data): string

@@ -57,7 +57,7 @@ final readonly class ExportModifier
                     continue;
                 }
 
-                $result[$entityTable.'|'.$relationName] = $relationModifier->getModifyInfo();
+                $result[$entityTable . '|' . $relationName] = $relationModifier->getModifyInfo();
             }
         }
 
@@ -178,7 +178,7 @@ final readonly class ExportModifier
     {
         $sourceItem = collect($items)->first(static fn ($item): bool => $item[$key] === $value);
 
-        throw_if($sourceItem === null, new SourceItemNotFoundException('Source item not found for attribute value: '.$value));
+        throw_if($sourceItem === null, new SourceItemNotFoundException('Source item not found for attribute value: ' . $value));
 
         return $syncId->keyStringByValues($sourceItem);
     }

@@ -125,14 +125,14 @@ final class CreateMigrationCommand extends Command
      */
     private function getModels(): array
     {
-        $namespace = app()->getNamespace().'Models\\';
+        $namespace = app()->getNamespace() . 'Models\\';
         $files = File::allFiles(app_path('Models'));
 
         return collect($files)
             ->map(static function (SplFileInfo $file) use ($namespace) {
-                $filePath = str_replace('.'.$file->getExtension(), '', $file->getRelativePathname());
+                $filePath = str_replace('.' . $file->getExtension(), '', $file->getRelativePathname());
 
-                return $namespace.str_replace('/', '\\', $filePath);
+                return $namespace . str_replace('/', '\\', $filePath);
             })
             ->filter(static fn ($class): bool => class_exists($class) && is_subclass_of($class, Model::class))->values()->toArray();
     }

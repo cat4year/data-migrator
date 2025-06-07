@@ -43,7 +43,7 @@ final class DiskTest extends BaseTestCase
     protected function getEnvironmentSetUp($app): void
     {
         $app->make(Repository::class)->set('filesystems.disks.testing.driver', 'local');
-        $app->make(Repository::class)->set('filesystems.disks.testing.root', realpath(__DIR__.'/../Resource/Files'));
+        $app->make(Repository::class)->set('filesystems.disks.testing.root', realpath(__DIR__ . '/../Resource/Files'));
     }
 
     #[Override]
