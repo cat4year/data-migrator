@@ -6,14 +6,13 @@ namespace Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\Php;
 
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Filesystem\Filesystem;
-use function Cat4year\DataMigrator\Helpers\var_pretty_export;
 
 final readonly class ArrayToPhp
 {
     public function __construct(
         private Filesystem $filesystem,
-        private string $stubPath = __DIR__.'/array-migration-data.stub')
-    {
+        private string $stubPath = __DIR__.'/array-migration-data.stub'
+    ) {
     }
 
     /**
@@ -39,7 +38,7 @@ final readonly class ArrayToPhp
     private function populateDataStub(string $stub, ?string $data): string
     {
         if ($data !== null) {
-            $stub = str_replace(
+            return str_replace(
                 ['{{ data }}', '{{data}}'],
                 $data,
                 $stub

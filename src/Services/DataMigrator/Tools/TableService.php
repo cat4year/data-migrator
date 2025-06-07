@@ -7,14 +7,13 @@ namespace Cat4year\DataMigrator\Services\DataMigrator\Tools;
 use Cat4year\DataMigrator\Entity\SyncId;
 use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
-use Schema;
 
 final readonly class TableService
 {
-
     public function __construct(
         private SchemaState $schemaState,
-    ) {}
+    ) {
+    }
 
     public function schemaState(): SchemaState
     {
@@ -37,7 +36,7 @@ final readonly class TableService
 
     public function syncId(string $table): SyncId
     {
-        return app(SyncIdState::class)->tableSyncId($table); //todo: циклическая зависимость-
+        return app(SyncIdState::class)->tableSyncId($table); // todo: циклическая зависимость-
     }
 
     /**
@@ -54,7 +53,7 @@ final readonly class TableService
             if (
                 $index['unique'] === true
                 && count($index['columns']) === 1
-                && !in_array($autoIncKey, $index['columns'], true)
+                && ! in_array($autoIncKey, $index['columns'], true)
             ) {
                 $stableKey = $index['columns'][0];
             }
@@ -89,9 +88,10 @@ final readonly class TableService
     private function getNonAutoIncrementColumns(string $tableName): array
     {
         $columns = $this->schemaState->columns($tableName);
+
         return array_map(
-            static fn(array $column) => $column['name'],
-            array_filter($columns, static fn($column): bool => !$column['auto_increment'])
+            static fn (array $column) => $column['name'],
+            array_filter($columns, static fn ($column): bool => ! $column['auto_increment'])
         );
     }
 

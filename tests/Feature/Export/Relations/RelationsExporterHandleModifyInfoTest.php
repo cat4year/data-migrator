@@ -10,10 +10,11 @@ use Cat4year\DataMigrator\Entity\SyncId;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\ExportModifier;
 use Cat4year\DataMigratorTests\Database\Factory\SlugFirstFactory;
 use Cat4year\DataMigratorTests\Database\Factory\SlugThreeFactory;
+use Cat4year\DataMigratorTests\Feature\BaseTestCase;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Collection;
+use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Cat4year\DataMigratorTests\Feature\BaseTestCase;
 
 final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
 {
@@ -28,10 +29,107 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
         $this->assertEquals($exportModifier->handleModifyInfo($modifyInfo), $excepted);
     }
 
-    public static function provide_collect_belongs_to_relations(): array
+    public static function provide_collect_belongs_to_relations(): Iterator
+    {
+        yield 'handleModifyInfo SlugFirst belongsTo' => [static function (): array {
+            $relationName = 'slugThree';
+            $slugThree = SlugThreeFactory::new()->makeOne(['id' => 1, 'slug_second_id' => null]);
+            $slugFirst = SlugFirstFactory::new()
+                ->makeOne(['slug_three_id' => $slugThree->id])
+                ->setRelation($relationName, $slugThree);
+            $slugFirst2 = SlugFirstFactory::new()
+                ->makeOne(['slug_three_id' => null]);
+
+            $entities = [
+                $slugFirst->getTable() => [
+                    'table' => $slugFirst->getTable(),
+                    'items' => [$slugFirst->id => $slugFirst->getAttributes(), $slugFirst2->id => $slugFirst2->getAttributes()],
+                ],
+            ];
+
+            return [
+                app()->makeWith(ExportModifier::class, [
+                    'entitiesCollections' => new Collection($entities),
+                    'entityClasses' => new Collection([
+                        $slugFirst::class => [
+                            $relationName => $slugFirst->$relationName(),
+                        ],
+                    ]),
+                ]),
+                [
+                    sprintf('%s|%s', $slugFirst::class, $relationName) => [
+                        'slug_firsts' => [
+                            'slug_three_id' => new ExportModifyForeignColumn(
+                                tableName: 'slug_firsts',
+                                keyName: 'slug_three_id',
+                                foreignTableName: 'slug_threes',
+                                foreignUniqueKeyName: new SyncId(['slug']),
+                                foreignOldKeyName: 'id',
+                                nullable: true,
+                                autoincrement: false,
+                                isPrimaryKey: false,
+                            ),
+                            'id' => new ExportModifySimpleColumn(
+                                tableName: 'slug_firsts',
+                                keyName: 'id',
+                                uniqueKeyName: new SyncId(['slug']),
+                                nullable: false,
+                                autoincrement: true,
+                                isPrimaryKey: true,
+                            ),
+                        ],
+                        'slug_threes' => [
+                            'id' => new ExportModifySimpleColumn(
+                                tableName: 'slug_threes',
+                                keyName: 'id',
+                                uniqueKeyName: new SyncId(['slug']),
+                                nullable: false,
+                                autoincrement: true,
+                                isPrimaryKey: true,
+                            ),
+                        ],
+                    ],
+                ],
+                [
+                    'slug_firsts' => [
+                        'slug_three_id' => new ExportModifyForeignColumn(...[
+                            'tableName' => 'slug_firsts',
+                            'keyName' => 'slug_three_id',
+                            'foreignTableName' => 'slug_threes',
+                            'foreignUniqueKeyName' => new SyncId(['slug']),
+                            'foreignOldKeyName' => 'id',
+                            'nullable' => true,
+                            'autoincrement' => false,
+                            'isPrimaryKey' => false,
+                        ]),
+                        'id' => new ExportModifySimpleColumn(...[
+                            'tableName' => 'slug_firsts',
+                            'keyName' => 'id',
+                            'uniqueKeyName' => new SyncId(['slug']),
+                            'nullable' => false,
+                            'autoincrement' => true,
+                            'isPrimaryKey' => true,
+                        ]),
+                    ],
+                    'slug_threes' => [
+                        'id' => new ExportModifySimpleColumn(...[
+                            'tableName' => 'slug_threes',
+                            'keyName' => 'id',
+                            'uniqueKeyName' => new SyncId(['slug']),
+                            'nullable' => false,
+                            'autoincrement' => true,
+                            'isPrimaryKey' => true,
+                        ]),
+                    ],
+                ],
+            ];
+        }];
+    }
+
+    public static function provide_collect_morph_one_relations(): array
     {
         return [
-            'handleModifyInfo SlugFirst belongsTo' => [static function (): array {
+            'handleModifyInfo SlugFirst morphOne' => [static function (): array {
                 $relationName = 'slugThree';
                 $slugThree = SlugThreeFactory::new()->makeOne(['id' => 1, 'slug_second_id' => null]);
                 $slugFirst = SlugFirstFactory::new()
@@ -43,7 +141,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                 $entities = [
                     $slugFirst->getTable() => [
                         'table' => $slugFirst->getTable(),
-                        'items' => [$slugFirst->id => $slugFirst->getAttributes(), $slugFirst2->id => $slugFirst2->getAttributes()]
+                        'items' => [$slugFirst->id => $slugFirst->getAttributes(), $slugFirst2->id => $slugFirst2->getAttributes()],
                     ],
                 ];
 
@@ -53,7 +151,7 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                         'entityClasses' => new Collection([
                             $slugFirst::class => [
                                 $relationName => $slugFirst->$relationName(),
-                            ]
+                            ],
                         ]),
                     ]),
                     [
@@ -91,145 +189,36 @@ final class RelationsExporterHandleModifyInfoTest extends BaseTestCase
                         ],
                     ],
                     [
-                        'slug_firsts' =>
-                            [
-                                'slug_three_id' =>
-                                    new ExportModifyForeignColumn(...[
-                                        'tableName' => 'slug_firsts',
-                                        'keyName' => 'slug_three_id',
-                                        'foreignTableName' => 'slug_threes',
-                                        'foreignUniqueKeyName' => new SyncId(['slug']),
-                                        'foreignOldKeyName' => 'id',
-                                        'nullable' => true,
-                                        'autoincrement' => false,
-                                        'isPrimaryKey' => false,
-                                    ]),
-                                'id' =>
-                                    new ExportModifySimpleColumn(...[
-                                        'tableName' => 'slug_firsts',
-                                        'keyName' => 'id',
-                                        'uniqueKeyName' => new SyncId(['slug']),
-                                        'nullable' => false,
-                                        'autoincrement' => true,
-                                        'isPrimaryKey' => true,
-                                    ]),
-                            ],
-                        'slug_threes' =>
-                            [
-                                'id' =>
-                                    new ExportModifySimpleColumn(...[
-                                        'tableName' => 'slug_threes',
-                                        'keyName' => 'id',
-                                        'uniqueKeyName' => new SyncId(['slug']),
-                                        'nullable' => false,
-                                        'autoincrement' => true,
-                                        'isPrimaryKey' => true,
-                                    ]),
-                            ]
-                    ],
-                ];
-            }],
-        ];
-    }
-
-    public static function provide_collect_morph_one_relations(): array
-    {
-        return [
-            'handleModifyInfo SlugFirst morphOne' => [static function (): array {
-                $relationName = 'slugThree';
-                $slugThree = SlugThreeFactory::new()->makeOne(['id' => 1, 'slug_second_id' => null]);
-                $slugFirst = SlugFirstFactory::new()
-                                             ->makeOne(['slug_three_id' => $slugThree->id])
-                                             ->setRelation($relationName, $slugThree);
-                $slugFirst2 = SlugFirstFactory::new()
-                                              ->makeOne(['slug_three_id' => null]);
-
-                $entities = [
-                    $slugFirst->getTable() => [
-                        'table' => $slugFirst->getTable(),
-                        'items' => [$slugFirst->id => $slugFirst->getAttributes(), $slugFirst2->id => $slugFirst2->getAttributes()]
-                    ],
-                ];
-
-                return [
-                    app()->makeWith(ExportModifier::class, [
-                        'entitiesCollections' => new Collection($entities),
-                        'entityClasses' => new Collection([
-                            $slugFirst::class => [
-                                $relationName => $slugFirst->$relationName(),
-                            ]
-                        ]),
-                    ]),
-                    [
-                        sprintf('%s|%s', $slugFirst::class, $relationName) => [
-                            'slug_firsts' => [
-                                'slug_three_id' => new ExportModifyForeignColumn(
-                                    tableName: 'slug_firsts',
-                                    keyName: 'slug_three_id',
-                                    foreignTableName: 'slug_threes',
-                                    foreignUniqueKeyName: new SyncId(['slug']),
-                                    foreignOldKeyName: 'id',
-                                    nullable: true,
-                                    autoincrement: false,
-                                    isPrimaryKey: false,
-                                ),
-                                'id' => new ExportModifySimpleColumn(
-                                    tableName: 'slug_firsts',
-                                    keyName: 'id',
-                                    uniqueKeyName: new SyncId(['slug']),
-                                    nullable: false,
-                                    autoincrement: true,
-                                    isPrimaryKey: true,
-                                ),
-                            ],
-                            'slug_threes' => [
-                                'id' => new ExportModifySimpleColumn(
-                                    tableName: 'slug_threes',
-                                    keyName: 'id',
-                                    uniqueKeyName: new SyncId(['slug']),
-                                    nullable: false,
-                                    autoincrement: true,
-                                    isPrimaryKey: true,
-                                ),
-                            ],
+                        'slug_firsts' => [
+                            'slug_three_id' => new ExportModifyForeignColumn(...[
+                                'tableName' => 'slug_firsts',
+                                'keyName' => 'slug_three_id',
+                                'foreignTableName' => 'slug_threes',
+                                'foreignUniqueKeyName' => new SyncId(['slug']),
+                                'foreignOldKeyName' => 'id',
+                                'nullable' => true,
+                                'autoincrement' => false,
+                                'isPrimaryKey' => false,
+                            ]),
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_firsts',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => new SyncId(['slug']),
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
                         ],
-                    ],
-                    [
-                        'slug_firsts' =>
-                            [
-                                'slug_three_id' =>
-                                    new ExportModifyForeignColumn(...[
-                                        'tableName' => 'slug_firsts',
-                                        'keyName' => 'slug_three_id',
-                                        'foreignTableName' => 'slug_threes',
-                                        'foreignUniqueKeyName' => new SyncId(['slug']),
-                                        'foreignOldKeyName' => 'id',
-                                        'nullable' => true,
-                                        'autoincrement' => false,
-                                        'isPrimaryKey' => false,
-                                    ]),
-                                'id' =>
-                                    new ExportModifySimpleColumn(...[
-                                        'tableName' => 'slug_firsts',
-                                        'keyName' => 'id',
-                                        'uniqueKeyName' => new SyncId(['slug']),
-                                        'nullable' => false,
-                                        'autoincrement' => true,
-                                        'isPrimaryKey' => true,
-                                    ]),
-                            ],
-                        'slug_threes' =>
-                            [
-                                'id' =>
-                                    new ExportModifySimpleColumn(...[
-                                        'tableName' => 'slug_threes',
-                                        'keyName' => 'id',
-                                        'uniqueKeyName' => new SyncId(['slug']),
-                                        'nullable' => false,
-                                        'autoincrement' => true,
-                                        'isPrimaryKey' => true,
-                                    ]),
-                            ]
+                        'slug_threes' => [
+                            'id' => new ExportModifySimpleColumn(...[
+                                'tableName' => 'slug_threes',
+                                'keyName' => 'id',
+                                'uniqueKeyName' => new SyncId(['slug']),
+                                'nullable' => false,
+                                'autoincrement' => true,
+                                'isPrimaryKey' => true,
+                            ]),
+                        ],
                     ],
                 ];
             }],

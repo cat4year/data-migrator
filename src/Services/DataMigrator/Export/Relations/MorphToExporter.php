@@ -29,7 +29,7 @@ final readonly class MorphToExporter implements RelationExporter
      */
     public static function create(MorphTo $morphTo, ?array $tableData): self
     {
-        return app()->makeWith(self::class, compact('morphTo', 'tableData'));
+        return app()->makeWith(self::class, ['morphTo' => $morphTo, 'tableData' => $tableData]);
     }
 
     public function makeExportData(array $foreignIds): array
@@ -91,7 +91,7 @@ final readonly class MorphToExporter implements RelationExporter
 
         $oldKeyNames = array_column($foreignClassesColumnsData, 'oldKeyName', 'table');
         $keyNames = array_column($foreignClassesColumnsData, 'keyName', 'table');
-        $syncKeyNames = array_map(static fn(string $keyName): SyncId => new SyncId([$keyName]), $keyNames);
+        $syncKeyNames = array_map(static fn (string $keyName): SyncId => new SyncId([$keyName]), $keyNames);
 
         $exportModifyMorphColumn = new ExportModifyMorphColumn(
             morphType: $this->morphTo->getMorphType(),
@@ -115,9 +115,9 @@ final readonly class MorphToExporter implements RelationExporter
         $foreignClassesModifyInfoTablesColumns = [];
         foreach ($foreignClassesModifyInfo as $tableName => $tableData) {
             foreach ($tableData as $columnData) {
-                //todo: достаточно ли только simple? может там foreign или морф будет? может ли?
+                // todo: достаточно ли только simple? может там foreign или морф будет? может ли?
                 $column = new ExportModifySimpleColumn(
-                    tableName: $columnData['table'], //todo: почему это в entity массив, а не объект?
+                    tableName: $columnData['table'], // todo: почему это в entity массив, а не объект?
                     keyName: $columnData['oldKeyName'],
                     uniqueKeyName: new SyncId([$columnData['keyName']]),
                     nullable: $columnData['nullable'],
@@ -134,7 +134,7 @@ final readonly class MorphToExporter implements RelationExporter
                 $exportModifyMorphColumn->getKeyName() => $exportModifyMorphColumn,
                 $parentTableColumn->getKeyName() => $parentTableColumn,
             ],
-            ...$foreignClassesModifyInfoTablesColumns,//todo: нужно ли?
+            ...$foreignClassesModifyInfoTablesColumns, // todo: нужно ли?
         ];
     }
 

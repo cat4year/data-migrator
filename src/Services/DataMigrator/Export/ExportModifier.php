@@ -4,18 +4,16 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export;
 
-use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationExporter;
 use Cat4year\DataMigrator\Entity\ExportModifyColumn;
 use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;
 use Cat4year\DataMigrator\Entity\SyncId;
 use Cat4year\DataMigrator\Exceptions\Export\SourceItemNotFoundException;
+use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationExporter;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection as SupportCollection;
-use Illuminate\Support\Facades\Log;
 use RuntimeException;
-use Throwable;
 
 final readonly class ExportModifier
 {
@@ -23,8 +21,7 @@ final readonly class ExportModifier
         private RelationFactory $relationFactory,
         private SupportCollection $entitiesCollections,
         private SupportCollection $entityClasses
-    )
-    {
+    ) {
     }
 
     public function modify(): array
@@ -37,7 +34,6 @@ final readonly class ExportModifier
 
         return $this->modifyColumnsValues($entitiesModifyInfo);
     }
-
 
     public function makeAndHandleModifyInfo(): array
     {
@@ -57,11 +53,11 @@ final readonly class ExportModifier
 
                 $relationModifier = $this->relationFactory->createByRelation($relation, $this->entitiesCollections);
 
-                if (!$relationModifier instanceof RelationExporter) {
+                if (! $relationModifier instanceof RelationExporter) {
                     continue;
                 }
 
-                $result[$entityTable . '|' . $relationName] = $relationModifier->getModifyInfo();
+                $result[$entityTable.'|'.$relationName] = $relationModifier->getModifyInfo();
             }
         }
 
@@ -79,7 +75,7 @@ final readonly class ExportModifier
                 foreach ($modifyInfo as $attributeKeyName => $modifyInfoForKey) {
                     assert($modifyInfoForKey instanceof ExportModifyColumn);
 
-                    if (!$modifyInfoForKey instanceof ExportModifyMorphColumn) {
+                    if (! $modifyInfoForKey instanceof ExportModifyMorphColumn) {
                         $result[$table][$attributeKeyName] = $modifyInfoForKey;
 
                         continue;
@@ -90,7 +86,7 @@ final readonly class ExportModifier
                     if (! isset($result[$table][$attributeKeyName])) {
                         $result[$table][$attributeKeyName] = $modifyInfoForKey;
                     } else {
-                        //todo: разбить разные морф таблицы на разные экземпляры? и не завязыватья на ключе?
+                        // todo: разбить разные морф таблицы на разные экземпляры? и не завязыватья на ключе?
                         $result[$table][$attributeKeyName]->addKeyNames($modifyInfoForKey->getSourceKeyNames());
                         $result[$table][$attributeKeyName]->addOldKeyNames($modifyInfoForKey->getSourceOldKeyNames());
                     }
@@ -118,12 +114,13 @@ final readonly class ExportModifier
                 }
 
                 $result[$tableName]['items'][$itemKey] = $attributes;
-                //todo: правильный ли подход? Может стоит идти по конкретным полям, которые нужно модифицировать
+                // todo: правильный ли подход? Может стоит идти по конкретным полям, которые нужно модифицировать
                 foreach ($attributes as $attributeKeyName => $attributeValue) {
-                    if (
-                        !isset($entitiesModifyInfo[$tableName][$attributeKeyName])
-                        || $attributeValue === null
-                    ) {
+                    if (! isset($entitiesModifyInfo[$tableName][$attributeKeyName])) {
+                        continue;
+                    }
+
+                    if ($attributeValue === null) {
                         continue;
                     }
 
@@ -149,7 +146,7 @@ final readonly class ExportModifier
                     /**
                      * todo: надо решить как тут действовать.
                      * todo: Либо отменять экспорт, либо пропускать с неизменным автоинкрементным полем
-                     **/
+                     */
                     throw_unless(isset($entities[$modifyInfoTable]['items']), new RuntimeException('Отсутствуют данные таблицы источника для подмены колонки'));
 
                     try {
@@ -179,9 +176,9 @@ final readonly class ExportModifier
      */
     private function getSyncStringFromSource(array $items, string $key, string|int $value, SyncId $syncId): string
     {
-        $sourceItem = collect($items)->first(static fn($item): bool => $item[$key] === $value);
+        $sourceItem = collect($items)->first(static fn ($item): bool => $item[$key] === $value);
 
-        throw_if($sourceItem === null, new SourceItemNotFoundException('Source item not found for attribute value: ' . $value));
+        throw_if($sourceItem === null, new SourceItemNotFoundException('Source item not found for attribute value: '.$value));
 
         return $syncId->keyStringByValues($sourceItem);
     }

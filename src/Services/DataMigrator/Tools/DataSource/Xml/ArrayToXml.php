@@ -106,7 +106,7 @@ final class ArrayToXml
     private function ensureValidDomProperties(array $domProperties): void
     {
         foreach (array_keys($domProperties) as $key) {
-            throw_unless(property_exists($this->domDocument, $key), new RuntimeException($key . ' is not a valid property of DOMDocument'));
+            throw_unless(property_exists($this->domDocument, $key), new RuntimeException($key.' is not a valid property of DOMDocument'));
         }
     }
 
@@ -230,7 +230,7 @@ final class ArrayToXml
     private function convertNodeValue(mixed $value): mixed
     {
         if ($this->options['convertBoolToString'] && is_bool($value)) {
-            $value = $value ? 'true' : 'false';
+            return $value ? 'true' : 'false';
         }
 
         return $value;

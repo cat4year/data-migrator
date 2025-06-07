@@ -7,16 +7,18 @@ namespace Cat4year\DataMigrator\Entity;
 use Illuminate\Contracts\Support\Arrayable;
 use InvalidArgumentException;
 use JsonSerializable;
+use LogicException;
 
 final readonly class SyncId implements Arrayable, JsonSerializable
 {
     private string $hash;
 
-    /** @var array<string, mixed> $columns */
+    /**
+     * @var array<string, mixed>
+     */
     public function __construct(
         private array $columns,
-    )
-    {
+    ) {
         throw_if($columns === [], new InvalidArgumentException('SyncId cannot be empty.'));
 
         $this->hash = self::makeHash($columns);
@@ -27,8 +29,8 @@ final readonly class SyncId implements Arrayable, JsonSerializable
         $result = [];
 
         foreach ($this->columns as $column) {
-            //tra(test: $values, cc: $column)->context(filename: 'test')->stackTrace();
-            throw_unless(isset($values[$column]), new \LogicException('Column not found in values'));
+            // tra(test: $values, cc: $column)->context(filename: 'test')->stackTrace();
+            throw_unless(isset($values[$column]), new LogicException('Column not found in values'));
 
             $result[] = $values[$column];
         }
@@ -41,8 +43,8 @@ final readonly class SyncId implements Arrayable, JsonSerializable
         $result = [];
 
         foreach ($this->columns as $column) {
-            //tra(test: $values, cc: $column)->context(filename: 'test')->stackTrace();
-            throw_unless(isset($values[$column]), new \LogicException('Column not found in values'));
+            // tra(test: $values, cc: $column)->context(filename: 'test')->stackTrace();
+            throw_unless(isset($values[$column]), new LogicException('Column not found in values'));
 
             $result[] = $values[$column];
         }
@@ -61,8 +63,8 @@ final readonly class SyncId implements Arrayable, JsonSerializable
         }
 
         return implode('|', $keys);
-        //sort($keys);
-        //return md5(json_encode($keys, JSON_THROW_ON_ERROR));
+        // sort($keys);
+        // return md5(json_encode($keys, JSON_THROW_ON_ERROR));
     }
 
     public function hash(): string

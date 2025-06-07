@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export;
 
-use Illuminate\Support\Facades\DB;
 use Cat4year\DataMigrator\Entity\SyncId;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationsExporter;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use JsonException;
 use RuntimeException;
@@ -39,7 +38,7 @@ final readonly class Exporter
      */
     public static function create(Model|string $entity, ?ExportConfigurator $exportConfigurator = null): self
     {
-        if (!$exportConfigurator instanceof ExportConfigurator) {
+        if (! $exportConfigurator instanceof ExportConfigurator) {
             $exportConfigurator = ExportConfigurator::create();
         }
 
@@ -154,7 +153,7 @@ final readonly class Exporter
 
         $result = $exportModifier->modify();
 
-        //$resultWithUniqueColumns = $this->syncIdAttacher->attachSyncIds($result);
+        // $resultWithUniqueColumns = $this->syncIdAttacher->attachSyncIds($result);
 
         return $this->sorter->sort($result);
     }
@@ -169,16 +168,15 @@ final readonly class Exporter
         SyncId $syncId,
         string $idKey = 'id',
         bool $emptyIsAll = false
-    ): array
-    {
+    ): array {
         if ($ids === [] && ! $emptyIsAll) {
             return [];
         }
 
         $items = DB::table($table)
-            ->unless($ids === [], static fn($q) => $q->whereIn($idKey, $ids))
+            ->unless($ids === [], static fn ($q) => $q->whereIn($idKey, $ids))
             ->get()
-            ->keyBy(static fn(stdClass $item): string => $syncId->keyStringByValues((array)$item));
+            ->keyBy(static fn (stdClass $item): string => $syncId->keyStringByValues((array) $item));
 
         return $this->dataToArray($items);
     }

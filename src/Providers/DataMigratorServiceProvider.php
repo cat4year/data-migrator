@@ -11,6 +11,7 @@ use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\MigrationDataSo
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\Php\PhpMigrationDataSourceFormat;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\SchemaState;
 use Illuminate\Support\ServiceProvider;
+use Override;
 
 final class DataMigratorServiceProvider extends ServiceProvider
 {
@@ -20,17 +21,18 @@ final class DataMigratorServiceProvider extends ServiceProvider
         MigrationDataSourceFormat::class => PhpMigrationDataSourceFormat::class,
     ];
 
-    #[\Override]
+    #[Override]
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__.'/../../config/data-migrator.php', 'data-migrator'
+            __DIR__.'/../../config/data-migrator.php',
+            'data-migrator'
         );
 
-        require_once(__DIR__.'/../../src/Helpers/app.php');
+        require_once __DIR__.'/../../src/Helpers/app.php';
 
         $this->registerCreator();
-        $this->app->singleton(SchemaState::class, static fn($app): SchemaState => new SchemaState());
+        $this->app->singleton(SchemaState::class, static fn ($app): SchemaState => new SchemaState);
     }
 
     public function boot(): void

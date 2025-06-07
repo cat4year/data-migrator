@@ -56,7 +56,7 @@ return [
                 'isPrimaryKey' => true,
             ],
         ],
-        'syncId' => ['slug']
+        'syncId' => ['slug'],
     ],
     'slug_threes' => [
         'items' => [
@@ -95,7 +95,7 @@ return [
                 'isPrimaryKey' => false,
             ],
         ],
-        'syncId' => ['slug']
+        'syncId' => ['slug'],
     ],
     'slug_seconds' => [
         'items' => [
@@ -111,7 +111,7 @@ return [
                 'slug' => 'hic-sit-illum',
                 'created_at' => '2025-05-13 02:44:18',
                 'name' => 'Quia ipsa quas ut dolor nostr...eaque.',
-                'slug_first_id' => 'consectetur-illum-voluptatibus'
+                'slug_first_id' => 'consectetur-illum-voluptatibus',
             ],
             3 => [
                 'id' => 'enim',
@@ -141,6 +141,6 @@ return [
                 'isPrimaryKey' => false,
             ],
         ],
-        'syncId' => ['slug']
+        'syncId' => ['slug'],
     ],
 ];

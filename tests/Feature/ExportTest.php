@@ -6,19 +6,20 @@ namespace Cat4year\DataMigratorTests\Feature;
 
 use Cat4year\DataMigrator\Services\DataMigrator\Export\ExportConfigurator;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Exporter;
+use Cat4year\DataMigratorTests\App\Models\SlugFirst;
+use Cat4year\DataMigratorTests\Database\Seeders\DatabaseSeeder;
 use Exception;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
-use Cat4year\DataMigratorTests\App\Models\SlugFirst;
-use Cat4year\DataMigratorTests\Database\Seeders\DatabaseSeeder;
+use Override;
 
 final class ExportTest extends BaseTestCase
 {
     use DatabaseMigrations;
 
-    #[\Override]
+    #[Override]
     protected function setUp(): void
     {
         parent::setUp();
@@ -72,7 +73,7 @@ final class ExportTest extends BaseTestCase
         $this->assertTrue($filesystem->exists($exportConfigurator->makeSourceBaseName()));
     }
 
-    #[\Override]
+    #[Override]
     protected function tearDown(): void
     {
         Storage::fake('public');

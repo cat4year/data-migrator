@@ -24,7 +24,7 @@ final readonly class HasOneOrManyExporter implements RelationExporter
      */
     public static function create(HasOneOrMany $hasOneOrMany): self
     {
-        return app()->makeWith(self::class, compact('relation'));
+        return app()->makeWith(self::class, ['hasOneOrMany' => $hasOneOrMany]);
     }
 
     public function makeExportData(array $foreignIds): array

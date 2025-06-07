@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigratorTests\App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Exception;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Override;
 use Symfony\Component\Mime\MimeTypes;
 
-class Attachment extends Model
+/**
+ * @mixin IdeHelperAttachment
+ */
+final class Attachment extends Model
 {
     protected $fillable = [
         'name',
@@ -30,9 +34,7 @@ class Attachment extends Model
         'group',
     ];
 
-    /**
-     * @var array
-     */
+    /** @var array */
     protected $appends = [
         'url',
         'relativeUrl',
@@ -90,15 +92,15 @@ class Attachment extends Model
     }
 
     /**
-     * @throws Exception
-     *
      * @return bool|null
+     *
+     * @throws Exception
      */
-    #[\Override]
+    #[Override]
     public function delete()
     {
         if ($this->exists) {
-            if (static::query()->where('hash', $this->hash)->where('disk', $this->disk)->limit(2)->count() <= 1) {
+            if (self::query()->where('hash', $this->hash)->where('disk', $this->disk)->limit(2)->count() <= 1) {
                 // Physical removal a file.
                 Storage::disk($this->disk)->delete($this->physicalPath());
             }
@@ -131,9 +133,6 @@ class Attachment extends Model
         return Storage::disk($this->disk)->exists($this->physicalPath());
     }
 
-    /**
-     * @return mixed
-     */
     public function download(array $headers = [])
     {
         return Storage::disk($this->disk)->download($this->physicalPath(), $this->original_name, $headers);

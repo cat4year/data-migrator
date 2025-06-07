@@ -4,22 +4,20 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Tools;
 
-use Illuminate\Database\Eloquent\Model;
 use Cat4year\DataMigrator\Entity\SyncId;
+use Illuminate\Database\Eloquent\Model;
 use RuntimeException;
 
 final class SyncIdState
 {
-    public function __construct(private readonly TableService $tableService) {}
+    public function __construct(private readonly TableService $tableService)
+    {
+    }
 
-    /**
-     * @var array<string, list<string|list<string>>>
-     */
+    /** @var array<string, list<string|list<string>>> */
     private array $potentialSyncIds = [];
 
-    /**
-     * @var array<string, SyncId>
-     */
+    /** @var array<string, SyncId> */
     private array $syncIds = [];
 
     public static function makeHashSyncId(array|string $keys): string
@@ -33,6 +31,7 @@ final class SyncIdState
         }
 
         sort($keys);
+
         return md5(json_encode($keys, JSON_THROW_ON_ERROR));
     }
 
@@ -41,11 +40,12 @@ final class SyncIdState
      * В идеале если не unique отдавать ошибку
      * Иначе желательно хотя бы на nullable проверять
      * Гарантия есть только когда колонка таблицы как unique в БД.
+     *
      * @todo: сделать чекер для разработчика. Чтобы он указал уникальные колонки для проблемных таблиц и не боялся за дубли
      */
     public function tableSyncId(string $table): SyncId
     {
-        if (!isset($this->syncIds[$table])) {
+        if (! isset($this->syncIds[$table])) {
             $this->syncIds[$table] = $this->makeSyncId($table);
         }
 
@@ -57,7 +57,7 @@ final class SyncIdState
         $potentialSyncIds = $this->potentialSyncIds($tableName);
 
         $potentialSyncId = $this->firstUniquePotentialSyncIds($potentialSyncIds, $tableName);
-        if (!is_array($potentialSyncId)) {
+        if (! is_array($potentialSyncId)) {
             $potentialSyncId = [$potentialSyncId];
         }
 
@@ -86,7 +86,7 @@ final class SyncIdState
         }
 
         throw_if(empty($this->potentialSyncIds[$tableName]), new RuntimeException(
-            'Не смогли определить уникальный идентификатор для таблицы ' . $tableName
+            'Не смогли определить уникальный идентификатор для таблицы '.$tableName
         ));
 
         return $this->potentialSyncIds[$tableName];
@@ -97,46 +97,46 @@ final class SyncIdState
         $syncIdByTables = config('data-migrator.table_sync_id', []);
         if (
             isset($syncIdByTables[$tableName])
-            && !$this->hasPotentialSyncId($tableName, SyncId::makeHash($syncIdByTables[$tableName]))
+            && ! $this->hasPotentialSyncId($tableName, SyncId::makeHash($syncIdByTables[$tableName]))
         ) {
-            return $syncIdByTables[$tableName];//нет гарантии, что не будет дублей с этим ключом/ключами
+            return $syncIdByTables[$tableName]; // нет гарантии, что не будет дублей с этим ключом/ключами
         }
 
         try {
             $model = $this->tableService->identifyModelByTable($tableName);
 
-            throw_if(!$model instanceof Model, new RuntimeException('Модель не идентифицирована по таблице '. $tableName));
+            throw_if(! $model instanceof Model, new RuntimeException('Модель не идентифицирована по таблице '.$tableName));
 
-            if (!$model->getIncrementing() && !$this->hasPotentialSyncId($tableName, $model->getKeyName())) {
-                //нет гарантии, что разработчик не переопределил $incrementing в модели ошибочно. Нужна доп. проверка в БД
-                //нет гарантии, что не будет дублей с этим якобы уникальным идентификатором
+            if (! $model->getIncrementing() && ! $this->hasPotentialSyncId($tableName, $model->getKeyName())) {
+                // нет гарантии, что разработчик не переопределил $incrementing в модели ошибочно. Нужна доп. проверка в БД
+                // нет гарантии, что не будет дублей с этим якобы уникальным идентификатором
                 return $model->getKeyName();
             }
 
-            if (method_exists($model, 'uniqueIds') ) {
+            if (method_exists($model, 'uniqueIds')) {
                 $tableColumns = $this->tableService->schemaState()->columns($model->getTable());
-                //$maybeUniqueColumn = null;
+                // $maybeUniqueColumn = null;
                 foreach ($model->uniqueIds() as $uniqueId) {
-                    if (!isset($tableColumns[$uniqueId])) {
+                    if (! isset($tableColumns[$uniqueId])) {
                         continue;
                     }
 
                     if (
                         $tableColumns[$uniqueId]['unique'] === true
-                        && !$this->hasPotentialSyncId($tableName, $uniqueId)
+                        && ! $this->hasPotentialSyncId($tableName, $uniqueId)
                     ) {
                         return $uniqueId;
                     }
 
-                    //$maybeUniqueColumn = $uniqueId;
+                    // $maybeUniqueColumn = $uniqueId;
                 }
 
-                //throw new RuntimeException('Не найдено подходящего уникального ключа в uniqueIds');
-                //return $maybeUniqueColumn;//нет гарантии, что не будет дублей с этим якобы уникальным идентификатором
+                // throw new RuntimeException('Не найдено подходящего уникального ключа в uniqueIds');
+                // return $maybeUniqueColumn;//нет гарантии, что не будет дублей с этим якобы уникальным идентификатором
             }
 
             $foundPotentialColumn = $this->tableService->tryFindUniqueColumnsByIndex($tableName);
-            if ($foundPotentialColumn!== null && !$this->hasPotentialSyncId($tableName, SyncId::makeHash($foundPotentialColumn))) {
+            if ($foundPotentialColumn !== null && ! $this->hasPotentialSyncId($tableName, SyncId::makeHash($foundPotentialColumn))) {
                 return $foundPotentialColumn;
             }
         } catch (RuntimeException) {
@@ -151,7 +151,7 @@ final class SyncIdState
     }
 
     /**
-     * @param  list<string|list<string>> $potentialSyncIds
+     * @param list<string|list<string>> $potentialSyncIds
      * @return string|list<string>
      */
     private function firstUniquePotentialSyncIds(array $potentialSyncIds, string $tableName): string|array
@@ -175,9 +175,8 @@ final class SyncIdState
     {
         return array_all(
             $compoundPotentialSyncId,
-            fn($column): bool => $this->isGoodPotentialCompoundPartSyncId($column, $tableName)
+            fn ($column): bool => $this->isGoodPotentialCompoundPartSyncId($column, $tableName)
         );
-
     }
 
     private function isGoodPotentialCompoundPartSyncId(string $potentialSyncId, string $tableName): bool
@@ -185,8 +184,8 @@ final class SyncIdState
         $columns = $this->tableService->schemaState()->columns($tableName);
 
         if (isset($columns[$potentialSyncId])) {
-            //желательно еще на nullable, но это не точно
-            //можно снова с индексом сверять, но можем сильно отсеить и не получить ключа в итоге, т.к. в конфиге плохо зададут
+            // желательно еще на nullable, но это не точно
+            // можно снова с индексом сверять, но можем сильно отсеить и не получить ключа в итоге, т.к. в конфиге плохо зададут
             return $columns[$potentialSyncId]['auto_increment'] === false;
         }
 

@@ -6,6 +6,7 @@ namespace Cat4year\DataMigratorTests\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
+
 use function Orchestra\Testbench\package_path;
 
 final class AdaptSlugModelsForImport extends Seeder
@@ -14,7 +15,7 @@ final class AdaptSlugModelsForImport extends Seeder
     {
         $path = package_path('tests/Feature/Fixtures/new_export.php');
 
-        if (!file_exists($path)) {
+        if (! file_exists($path)) {
             return;
         }
 
@@ -22,7 +23,7 @@ final class AdaptSlugModelsForImport extends Seeder
 
         foreach ($data as $tableName => $tableData) {
             $modelClass = $this->getModelClass($tableName);
-            if (!class_exists($modelClass)) {
+            if (! class_exists($modelClass)) {
                 continue;
             }
 
@@ -39,6 +40,7 @@ final class AdaptSlugModelsForImport extends Seeder
     private function getModelClass(string $tableName): string
     {
         $modelName = str_replace(' ', '', ucwords(str_replace('_', ' ', Str::singular($tableName))));
-        return 'Cat4year\DataMigratorTests\App\Models\\' . $modelName;
+
+        return 'Cat4year\DataMigratorTests\App\Models\\'.$modelName;
     }
 }

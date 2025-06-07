@@ -8,14 +8,12 @@ use Cat4year\DataMigrator\Entity\ExportModifyColumn;
 
 final class ExportModifyColumnFactory
 {
-    /**
-     * @var array<string, ExportModifyColumn>
-     */
+    /** @var array<string, ExportModifyColumn> */
     private static array $state = [];
 
     public static function create(string $hash): Product
     {
-        if (!isset(self::$state[$hash])) {
+        if (! isset(self::$state[$hash])) {
             self::$state[$hash] = new Product($hash);
         }
 

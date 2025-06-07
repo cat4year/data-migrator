@@ -6,6 +6,8 @@ namespace Cat4year\DataMigratorTests\Feature\Export\Relations;
 
 use Cat4year\DataMigrator\Services\DataMigrator\Export\ExportConfigurator;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationsExporter;
+use Cat4year\DataMigratorTests\Feature\BaseTestCase;
+use Cat4year\DataMigratorTests\Resource\Export\Relations\RelationsExporterTestSeeder;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,9 +15,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Iterator;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Cat4year\DataMigratorTests\Feature\BaseTestCase;
-use Cat4year\DataMigratorTests\Resource\Export\Relations\RelationsExporterTestSeeder;
 
 final class RelationsExporterCollectTest extends BaseTestCase
 {
@@ -27,10 +28,10 @@ final class RelationsExporterCollectTest extends BaseTestCase
      *
      * @throws BindingResolutionException
      */
-    //#[DataProvider('provide_collect_has_one_relations')]
+    // #[DataProvider('provide_collect_has_one_relations')]
     #[DataProvider('provide_collect_belongs_to_relations')]
-//    #[DataProvider('provide_collect_has_through_relations')]
-//    #[DataProvider('provide_collect_all_relations')]
+    //    #[DataProvider('provide_collect_has_through_relations')]
+    //    #[DataProvider('provide_collect_all_relations')]
     #[DataProvider('provide_collect_morph_one_relations')]
     public function test_collect_relations(
         string $entityClass,
@@ -47,7 +48,7 @@ final class RelationsExporterCollectTest extends BaseTestCase
             $configurator->setSupportedRelations([$relationTypeClass]);
         }
 
-        $relationsExporter = app()->makeWith(RelationsExporter::class, compact('configurator'));
+        $relationsExporter = app()->makeWith(RelationsExporter::class, ['configurator' => $configurator]);
 
         $result = $relationsExporter->collectRelations($entityClass, $ids)->entityIds->toArray();
         foreach ($result as $tableName => $tableEntityIds) {
@@ -121,51 +122,49 @@ final class RelationsExporterCollectTest extends BaseTestCase
         ];
     }
 
-    public static function provide_collect_belongs_to_relations(): array
+    public static function provide_collect_belongs_to_relations(): Iterator
     {
-        return [
-            'slugs SlugFirst belongsTo lvl1' => [
-                'slug_firsts',
-                [1, 2, 3],
-                1,
-                RelationsExporterTestSeeder::class,
-                [
-                    'slug_firsts' => [1, 2, 3],
-                ],
-                BelongsTo::class,
+        yield 'slugs SlugFirst belongsTo lvl1' => [
+            'slug_firsts',
+            [1, 2, 3],
+            1,
+            RelationsExporterTestSeeder::class,
+            [
+                'slug_firsts' => [1, 2, 3],
             ],
-            'slugs SlugFirst belongsTo lvl2' => [
-                'slug_firsts',
-                [1, 2, 3],
-                2,
-                RelationsExporterTestSeeder::class,
-                [
-                    'slug_firsts' => [1, 2, 3],
-                    'slug_threes' => [1, 2],
-                ],
-                BelongsTo::class,
+            BelongsTo::class,
+        ];
+        yield 'slugs SlugFirst belongsTo lvl2' => [
+            'slug_firsts',
+            [1, 2, 3],
+            2,
+            RelationsExporterTestSeeder::class,
+            [
+                'slug_firsts' => [1, 2, 3],
+                'slug_threes' => [1, 2],
             ],
-            'slugs SlugSecond belongsTo lvl2' => [
-                'slug_seconds',
-                [1, 2, 3],
-                1,
-                RelationsExporterTestSeeder::class,
-                [
-                    'slug_seconds' => [1, 2, 3],
-                ],
-                BelongsTo::class,
+            BelongsTo::class,
+        ];
+        yield 'slugs SlugSecond belongsTo lvl2' => [
+            'slug_seconds',
+            [1, 2, 3],
+            1,
+            RelationsExporterTestSeeder::class,
+            [
+                'slug_seconds' => [1, 2, 3],
             ],
-            'slugs SlugThree belongsTo lvl2' => [
-                'slug_threes',
-                [1, 2, 3],
-                2,
-                RelationsExporterTestSeeder::class,
-                [
-                    'slug_threes' => [1, 2, 3],
-                    'slug_seconds' => [1, 2],
-                ],
-                BelongsTo::class,
+            BelongsTo::class,
+        ];
+        yield 'slugs SlugThree belongsTo lvl2' => [
+            'slug_threes',
+            [1, 2, 3],
+            2,
+            RelationsExporterTestSeeder::class,
+            [
+                'slug_threes' => [1, 2, 3],
+                'slug_seconds' => [1, 2],
             ],
+            BelongsTo::class,
         ];
     }
 
@@ -423,98 +422,94 @@ final class RelationsExporterCollectTest extends BaseTestCase
         ];
     }
 
-    public static function provide_collect_morph_one_relations(): array
+    public static function provide_collect_morph_one_relations(): Iterator
     {
-        return [
-            'slugs SlugFirst morphOne lvl1' => [
-                'slug_firsts',
-                [1, 2, 3],
-                1,
-                RelationsExporterTestSeeder::class,
-                [
-                    'slug_firsts' => [1, 2, 3],
-                ],
-                MorphOne::class,
+        yield 'slugs SlugFirst morphOne lvl1' => [
+            'slug_firsts',
+            [1, 2, 3],
+            1,
+            RelationsExporterTestSeeder::class,
+            [
+                'slug_firsts' => [1, 2, 3],
             ],
-            'slugs SlugFirst morphOne lvl2' => [
-                'slug_firsts',
-                [1, 2, 3],
-                2,
-                RelationsExporterTestSeeder::class,
-                [
-                    'slug_firsts' => [1, 2, 3],
-                    'slug_fours' => [1, 2],
-                ],
-                MorphOne::class,
+            MorphOne::class,
+        ];
+        yield 'slugs SlugFirst morphOne lvl2' => [
+            'slug_firsts',
+            [1, 2, 3],
+            2,
+            RelationsExporterTestSeeder::class,
+            [
+                'slug_firsts' => [1, 2, 3],
+                'slug_fours' => [1, 2],
             ],
-            'slugs SlugFirst morphOne lvl3' => [
-                'slug_firsts',
-                [1, 2, 3],
-                3,
-                RelationsExporterTestSeeder::class,
-                [
-                    'slug_firsts' => [1, 2, 3],
-                    'slug_fours' => [1, 2],
-                ],
-                MorphOne::class,
+            MorphOne::class,
+        ];
+        yield 'slugs SlugFirst morphOne lvl3' => [
+            'slug_firsts',
+            [1, 2, 3],
+            3,
+            RelationsExporterTestSeeder::class,
+            [
+                'slug_firsts' => [1, 2, 3],
+                'slug_fours' => [1, 2],
             ],
-
-            // infinity lvls with different ids
-            'slugs SlugFirst morphOne infinity ids 1' => [
-                'slug_firsts',
-                [1],
-                PHP_INT_MAX,
-                RelationsExporterTestSeeder::class,
-                [
-                    'slug_firsts' => [1],
-                    'slug_fours' => [1],
-                ],
-                MorphOne::class,
+            MorphOne::class,
+        ];
+        // infinity lvls with different ids
+        yield 'slugs SlugFirst morphOne infinity ids 1' => [
+            'slug_firsts',
+            [1],
+            PHP_INT_MAX,
+            RelationsExporterTestSeeder::class,
+            [
+                'slug_firsts' => [1],
+                'slug_fours' => [1],
             ],
-            'slugs SlugFirst morphOne infinity ids 2' => [
-                'slug_firsts',
-                [2],
-                PHP_INT_MAX,
-                RelationsExporterTestSeeder::class,
-                [
-                    'slug_firsts' => [2],
-                ],
-                MorphOne::class,
+            MorphOne::class,
+        ];
+        yield 'slugs SlugFirst morphOne infinity ids 2' => [
+            'slug_firsts',
+            [2],
+            PHP_INT_MAX,
+            RelationsExporterTestSeeder::class,
+            [
+                'slug_firsts' => [2],
             ],
-            'slugs SlugFirst morphOne infinity ids 3' => [
-                'slug_firsts',
-                [3],
-                PHP_INT_MAX,
-                RelationsExporterTestSeeder::class,
-                [
-                    'slug_firsts' => [3],
-                    'slug_fours' => [2],
-                ],
-                MorphOne::class,
+            MorphOne::class,
+        ];
+        yield 'slugs SlugFirst morphOne infinity ids 3' => [
+            'slug_firsts',
+            [3],
+            PHP_INT_MAX,
+            RelationsExporterTestSeeder::class,
+            [
+                'slug_firsts' => [3],
+                'slug_fours' => [2],
             ],
-            'slugs SlugFirst morphOne infinity all' => [
-                'slug_firsts',
-                [1, 2, 3],
-                PHP_INT_MAX,
-                RelationsExporterTestSeeder::class,
-                [
-                    'slug_firsts' => [1, 2, 3],
-                    'slug_fours' => [1, 2],
-                ],
-                MorphOne::class,
+            MorphOne::class,
+        ];
+        yield 'slugs SlugFirst morphOne infinity all' => [
+            'slug_firsts',
+            [1, 2, 3],
+            PHP_INT_MAX,
+            RelationsExporterTestSeeder::class,
+            [
+                'slug_firsts' => [1, 2, 3],
+                'slug_fours' => [1, 2],
             ],
-
-            // without morphOne
-            'slugs SlugSecond no morphOne' => [
-                'slug_seconds',
-                [1, 2, 3],
-                PHP_INT_MAX,
-                RelationsExporterTestSeeder::class,
-                [
-                    'slug_seconds' => [1, 2, 3],
-                ],
-                MorphOne::class,
+            MorphOne::class,
+        ];
+        // without morphOne
+        yield 'slugs SlugSecond no morphOne' => [
+            'slug_seconds',
+            [1, 2, 3],
+            PHP_INT_MAX,
+            RelationsExporterTestSeeder::class,
+            [
+                'slug_seconds' => [1, 2, 3],
             ],
+            MorphOne::class,
         ];
     }
 }

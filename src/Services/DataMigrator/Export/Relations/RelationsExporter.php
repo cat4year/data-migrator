@@ -12,13 +12,9 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection as SupportCollection;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
-use RuntimeException;
-use Throwable;
 
 final readonly class RelationsExporter
 {
@@ -37,7 +33,7 @@ final readonly class RelationsExporter
      */
     public static function create(ExportConfigurator $configurator): self
     {
-        return app()->makeWith(self::class, compact('configurator'));
+        return app()->makeWith(self::class, ['configurator' => $configurator]);
     }
 
     public function collectRelations(string $entityTable, array $ids = [], int $lvl = 1): ExporterState
@@ -61,7 +57,7 @@ final readonly class RelationsExporter
 
         $entityModel = $this->tableService->identifyModelByTable($entityTable);
 
-        if (!$entityModel instanceof Model) {
+        if (! $entityModel instanceof Model) {
             return $this->exporterState;
         }
 
@@ -101,7 +97,7 @@ final readonly class RelationsExporter
 
             $relationExporter = $this->relationFactory->createByRelation($relation);
 
-            if (!$relationExporter instanceof RelationExporter) {
+            if (! $relationExporter instanceof RelationExporter) {
                 continue;
             }
 

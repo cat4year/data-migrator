@@ -6,8 +6,6 @@ namespace Cat4year\DataMigratorTests\Feature;
 
 use Cat4year\DataMigrator\Services\DataMigrator\Import\ImportData;
 use Cat4year\DataMigrator\Services\DataMigrator\Import\Importer;
-use Cat4year\DataMigratorTests\App\Models\SlugFirst;
-use Cat4year\DataMigratorTests\Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 
 final class ImportTest extends BaseTestCase

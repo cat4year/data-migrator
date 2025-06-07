@@ -4,21 +4,20 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigratorTests\Resource\Export;
 
-use Illuminate\Database\Seeder;
 use Cat4year\DataMigratorTests\App\Models\SlugFirst;
-use Cat4year\DataMigratorTests\App\Models\SlugFour;
 use Cat4year\DataMigratorTests\App\Models\SlugSecond;
 use Cat4year\DataMigratorTests\App\Models\SlugThree;
 use Cat4year\DataMigratorTests\Database\Factory\SlugFirstFactory;
 use Cat4year\DataMigratorTests\Database\Factory\SlugFourFactory;
 use Cat4year\DataMigratorTests\Database\Factory\SlugSecondFactory;
 use Cat4year\DataMigratorTests\Database\Factory\SlugThreeFactory;
+use Illuminate\Database\Seeder;
 
 final class ExporterTestSeeder extends Seeder
 {
     public function run(): void
     {
-        //first
+        // first
         SlugFirstFactory::new([
             'slug' => 'rem-ut',
             'bool_test' => false,
@@ -52,27 +51,27 @@ final class ExporterTestSeeder extends Seeder
             'slug_three_id' => null,
         ])->createOne();
 
-        //second
+        // second
         SlugSecondFactory::new()->create([
             'slug' => 'autem-architecto-vel-quia-repudiandae',
             'created_at' => '2025-05-13 02:44:18',
             'name' => 'Quibusdam velit aut suscipit ...uidem.',
-            'slug_first_id' => 3
+            'slug_first_id' => 3,
         ]);
         SlugSecondFactory::new()->create([
             'slug' => 'hic-sit-illum',
             'created_at' => '2025-05-13 02:44:18',
             'name' => 'Quia ipsa quas ut dolor nostr...eaque.',
-            'slug_first_id' => 2
+            'slug_first_id' => 2,
         ]);
         SlugSecondFactory::new()->create([
             'slug' => 'enim',
             'created_at' => '2025-05-13 02:44:18',
             'name' => 'Aut nisi aut perferendis iure eaque.',
-            'slug_first_id' => 1
+            'slug_first_id' => 1,
         ]);
 
-        //three
+        // three
         SlugThreeFactory::new()->create([
             'slug' => 'magnam-dolorum',
             'name' => 'Velit qui tenetur amet amet c...uatur.',
@@ -89,7 +88,7 @@ final class ExporterTestSeeder extends Seeder
             'slug' => 'slug-three-3',
             'name' => 'Slug three three',
             'created_at' => '2025-05-13 02:37:33',
-            'slug_second_id' => 1
+            'slug_second_id' => 1,
         ]);
 
         SlugFirst::query()->find(1)->update(['slug_three_id' => 2]);

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use Cat4year\DataMigratorTests\App\Models\SlugSecond;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Cat4year\DataMigratorTests\App\Models\SlugSecond;
 
 return new class extends Migration
 {

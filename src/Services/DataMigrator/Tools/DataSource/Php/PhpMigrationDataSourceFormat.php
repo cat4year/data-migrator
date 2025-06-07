@@ -10,6 +10,7 @@ use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Filesystem\Filesystem;
 use JsonException;
 use RuntimeException;
+
 use function Cat4year\DataMigrator\Helpers\var_pretty_export;
 
 final readonly class PhpMigrationDataSourceFormat implements MigrationDataSourceFormat

@@ -6,7 +6,6 @@ namespace Cat4year\DataMigrator\Entity;
 
 interface ExportModifyColumn
 {
-
     public function getKeyName(): string;
 
     public function getTableName(): string;

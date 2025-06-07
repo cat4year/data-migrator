@@ -10,13 +10,13 @@ return [
      * Будет использоваться указанная колонка приоритетно, вместо автоматического поиска подходящей колонки
      */
     'table_unique_column_map' => [
-        //'users' => ['name', 'email']
+        // 'users' => ['name', 'email']
         'slug_secondables' => [
             'slug_secondable_type',
             'slug_second_id',
             'slug_secondable_id',
         ],
-        'slug_firsts' => 'slug'
+        'slug_firsts' => 'slug',
     ],
     /**
      * Будет использоваться для приоритетной синхронизации по указанному syncId
@@ -25,13 +25,13 @@ return [
      * Будет использоваться указанная колонка приоритетно, вместо автоматического поиска подходящей колонки
      */
     'table_sync_id' => [
-        //'users' => ['name', 'email']
+        // 'users' => ['name', 'email']
         'slug_secondables' => [
             'slug_secondable_type',
             'slug_second_id',
             'slug_secondable_id',
         ],
-        'slug_firsts' => 'slug'
+        'slug_firsts' => 'slug',
     ],
     /**
      * Если колонка связи - изменчивый инкрементарный id

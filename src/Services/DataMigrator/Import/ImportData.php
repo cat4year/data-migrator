@@ -25,7 +25,6 @@ final class ImportData
         $importData->data = $importData->migrationDataSourceFormat->load($path);
 
         return $importData;
-
     }
 
     public static function createFromArray(array $data): self
@@ -45,7 +44,7 @@ final class ImportData
     private function prepareForImport(array $data): array
     {
         foreach ($data as &$tableData) {
-            if (!isset($tableData['modifiedAttributes'])) {
+            if (! isset($tableData['modifiedAttributes'])) {
                 continue;
             }
 

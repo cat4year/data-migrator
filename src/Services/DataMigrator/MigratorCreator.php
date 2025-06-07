@@ -7,6 +7,7 @@ namespace Cat4year\DataMigrator\Services\DataMigrator;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Database\Migrations\MigrationCreator;
 use Illuminate\Support\Facades\Artisan;
+use Override;
 
 final class MigratorCreator extends MigrationCreator
 {
@@ -47,7 +48,7 @@ final class MigratorCreator extends MigrationCreator
         return $this->files->get($stub);
     }
 
-    #[\Override]
+    #[Override]
     public function stubPath(): string
     {
         return __DIR__.'/../../../stubs';
@@ -56,7 +57,7 @@ final class MigratorCreator extends MigrationCreator
     private function populateDataStub(string $stub, ?string $data): string
     {
         if ($data !== null) {
-            $stub = str_replace(
+            return str_replace(
                 ['{{ data }}', '{{data}}'],
                 $data,
                 $stub

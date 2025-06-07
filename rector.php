@@ -3,25 +3,23 @@
 declare(strict_types=1);
 
 use Rector\Caching\ValueObject\Storage\FileCacheStorage;
-use Rector\CodeQuality\Rector\FuncCall\CompactToVariablesRector;
 use Rector\Config\RectorConfig;
 use RectorLaravel\Set\LaravelSetList;
 
 return RectorConfig::configure()
     ->withBootstrapFiles([
-        __DIR__ . '/vendor/orchestra/testbench-core/laravel/bootstrap/app.php'
+        __DIR__.'/vendor/orchestra/testbench-core/laravel/bootstrap/app.php',
     ])
     ->withPaths([
-        __DIR__ . '/src',
-        __DIR__ . '/tests',
-        __DIR__ . '/config',
+        __DIR__.'/src',
+        __DIR__.'/tests',
+        __DIR__.'/config',
     ])
     ->withSkip([
-        __DIR__ . '/tests/Fixtures/**',
-        __DIR__ . '/tests/**/Fixtures/**',
-        __DIR__ . '/tests/Resource/**',
-        __DIR__ . '/tests/**/Resource/**',
-        CompactToVariablesRector::class,
+        __DIR__.'/tests/Fixtures/**',
+        __DIR__.'/tests/**/Fixtures/**',
+        __DIR__.'/tests/Resource/**',
+        __DIR__.'/tests/**/Resource/**',
     ])
     ->withSets([
         LaravelSetList::LARAVEL_120,
@@ -43,8 +41,11 @@ return RectorConfig::configure()
         codingStyle: true,
         typeDeclarations: true,
         privatization: true,
-        naming: true,
+        instanceOf: true,
+        earlyReturn: true,
+        carbon: true,
         rectorPreset: true,
+        phpunitCodeQuality: true,
     )
     ->withImportNames(importShortClasses: false)
     ->withPHPStanConfigs([__DIR__.'/phpstan.neon'])

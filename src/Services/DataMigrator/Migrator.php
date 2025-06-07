@@ -9,7 +9,6 @@ use Cat4year\DataMigrator\Services\DataMigrator\Export\Exporter;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use RuntimeException;
-use function Cat4year\DataMigrator\Helpers\var_pretty_export;
 
 final readonly class Migrator
 {
@@ -45,7 +44,7 @@ final readonly class Migrator
         $exportData = $exporter->exportData();
 
         $fullPath = $exportConfigurator->makeSourceFullPath();
-        $preparedExportData = $exportConfigurator->getSourceFormat()->prepareForMigration($exportData); //for xml will need add
+        $preparedExportData = $exportConfigurator->getSourceFormat()->prepareForMigration($exportData); // for xml will need add
         $this->migratorCreator->createData(
             $exportConfigurator->getFileName(),
             dirname($fullPath),

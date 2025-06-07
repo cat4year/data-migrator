@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Console\Commands;
 
-use Illuminate\Support\Facades\File;
 use Cat4year\DataMigrator\Services\Configurations\BaseConfiguration;
 use Cat4year\DataMigrator\Services\Configurations\DataMigratorConfiguration;
 use Cat4year\DataMigrator\Services\DataMigrator\Migrator;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\File;
 use SplFileInfo;
 
 final class CreateMigrationCommand extends Command

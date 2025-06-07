@@ -10,7 +10,7 @@ use RuntimeException;
 final readonly class ModelService
 {
     public function __construct(
-        //todo: задуматься, о проблеме low cohesion
+        // todo: задуматься, о проблеме low cohesion
         private TableService $tableService,
     ) {
     }
@@ -18,12 +18,11 @@ final readonly class ModelService
     public function identifyUniqueIdColumn(Model $model): ?string
     {
         try {
-            $modelKey = $model->getKeyName();
             if ($model->getKeyName() === 'id' && $model->getKeyType() === 'int' && ! $model->isFillable('id')) {
-                $modelKey = $this->getFromAttributeOrTryFindIdColumn($model);
+                return $this->getFromAttributeOrTryFindIdColumn($model);
             }
 
-            return $modelKey;
+            return $model->getKeyName();
         } catch (RuntimeException) {
             return null;
         }
@@ -35,7 +34,7 @@ final readonly class ModelService
             $tableColumnMap = config('data-migrator.table_sync_id');
             if (isset($tableColumnMap[$model->getTable()])) {
                 if (is_string($tableColumnMap[$model->getTable()])) {
-                    return [$tableColumnMap[$model->getTable()]];//не обязательно добавлять как массив
+                    return [$tableColumnMap[$model->getTable()]]; // не обязательно добавлять как массив
                 }
 
                 return $tableColumnMap[$model->getTable()];

@@ -7,7 +7,7 @@ namespace Cat4year\DataMigrator\Entity;
 use Illuminate\Contracts\Support\Arrayable;
 use JsonSerializable;
 
-final readonly class ExportModifySimpleColumn implements ExportModifyColumn, Arrayable, JsonSerializable
+final readonly class ExportModifySimpleColumn implements Arrayable, ExportModifyColumn, JsonSerializable
 {
     public function __construct(
         private string $tableName,
@@ -16,8 +16,7 @@ final readonly class ExportModifySimpleColumn implements ExportModifyColumn, Arr
         private bool $nullable,
         private bool $autoincrement,
         private bool $isPrimaryKey = true,
-    )
-    {
+    ) {
     }
 
     public function getKeyName(): string
@@ -60,10 +59,10 @@ final readonly class ExportModifySimpleColumn implements ExportModifyColumn, Arr
         return $this->isPrimaryKey;
     }
 
-
     public static function fromArray(array $array): self
     {
         $uniqueKeyName = new SyncId($array['uniqueKeyName']);
+
         return new self(
             tableName: $array['tableName'],
             keyName: $array['keyName'],

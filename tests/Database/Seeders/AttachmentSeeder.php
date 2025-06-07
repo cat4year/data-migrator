@@ -6,7 +6,6 @@ namespace Cat4year\DataMigratorTests\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Orchid\Platform\Database\Factories\AttachmentFactory;
-use Cat4year\DataMigratorTests\Database\Factory\SlugFirstFactory;
 
 final class AttachmentSeeder extends Seeder
 {
@@ -60,7 +59,7 @@ final class AttachmentSeeder extends Seeder
                 'disk' => 'testing',
                 'user_id' => 1,
                 'group' => 'avatar',
-            ]
+            ],
         ];
 
         AttachmentFactory::new()->createMany($data);

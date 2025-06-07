@@ -6,7 +6,6 @@ namespace Cat4year\DataMigrator\Services\DataMigrator\Export\Relations;
 
 use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
-use Cat4year\DataMigrator\Services\DataMigrator\Tools\ModelService;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Illuminate\Contracts\Container\BindingResolutionException;
@@ -19,14 +18,15 @@ final readonly class BelongsToExporter implements RelationExporter
         private BelongsTo $belongsTo,
         private TableService $tableService,
         private SyncIdState $syncIdState,
-    ) {}
+    ) {
+    }
 
     /**
      * @throws BindingResolutionException
      */
     public static function create(BelongsTo $belongsTo): self
     {
-        return app()->makeWith(self::class, compact('belongsTo'));
+        return app()->makeWith(self::class, ['belongsTo' => $belongsTo]);
     }
 
     public function makeExportData(array $foreignIds): array
@@ -79,7 +79,7 @@ final readonly class BelongsToExporter implements RelationExporter
         $related = $this->belongsTo->getRelated();
         $relatedTable = $related->getTable();
         $relatedKeyName = $related->getKeyName();
-        $uniqueRelatedKeyName =  $this->syncIdState->tableSyncId($related->getTable());
+        $uniqueRelatedKeyName = $this->syncIdState->tableSyncId($related->getTable());
         $oldForeignKeyName = $this->belongsTo->getOwnerKeyName();
         $foreignKeyName = $this->belongsTo->getForeignKeyName();
 

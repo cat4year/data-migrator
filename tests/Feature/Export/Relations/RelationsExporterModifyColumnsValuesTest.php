@@ -10,9 +10,10 @@ use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Entity\SyncId;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\ExportModifier;
 use Cat4year\DataMigratorTests\App\Models\SlugFirst;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Cat4year\DataMigratorTests\Feature\BaseTestCase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Iterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 
 final class RelationsExporterModifyColumnsValuesTest extends BaseTestCase
@@ -33,105 +34,100 @@ final class RelationsExporterModifyColumnsValuesTest extends BaseTestCase
 
     private function extractItems(array $result): array
     {
-        return array_map(static fn(array $tableData) => $tableData['items'], $result);
+        return array_map(static fn (array $tableData) => $tableData['items'], $result);
     }
 
-    public static function provide_collect_belongs_to_relations(): array
+    public static function provide_collect_belongs_to_relations(): Iterator
     {
         $slugFirstModifyInfo = [
             'slug_firsts' => [
-                'slug_three_id' =>
-                    new ExportModifyForeignColumn(...[
-                        'tableName' => 'slug_firsts',
-                        'keyName' => 'slug_three_id',
-                        'foreignTableName' => 'slug_threes',
-                        'foreignUniqueKeyName' => new SyncId(['slug']),
-                        'foreignOldKeyName' => 'id',
-                        'nullable' => true,
-                        'autoincrement' => false,
-                        'isPrimaryKey' => false,
-                    ]),
-                'id' =>
-                    new ExportModifySimpleColumn(...[
-                        'tableName' => 'slug_firsts',
-                        'keyName' => 'id',
-                        'uniqueKeyName' => new SyncId(['slug']),
-                        'nullable' => false,
-                        'autoincrement' => true,
-                        'isPrimaryKey' => true,
-                    ]),
+                'slug_three_id' => new ExportModifyForeignColumn(...[
+                    'tableName' => 'slug_firsts',
+                    'keyName' => 'slug_three_id',
+                    'foreignTableName' => 'slug_threes',
+                    'foreignUniqueKeyName' => new SyncId(['slug']),
+                    'foreignOldKeyName' => 'id',
+                    'nullable' => true,
+                    'autoincrement' => false,
+                    'isPrimaryKey' => false,
+                ]),
+                'id' => new ExportModifySimpleColumn(...[
+                    'tableName' => 'slug_firsts',
+                    'keyName' => 'id',
+                    'uniqueKeyName' => new SyncId(['slug']),
+                    'nullable' => false,
+                    'autoincrement' => true,
+                    'isPrimaryKey' => true,
+                ]),
             ],
             'slug_threes' => [
-                'id' =>
-                    new ExportModifySimpleColumn(...[
-                        'tableName' => 'slug_threes',
-                        'keyName' => 'id',
-                        'uniqueKeyName' => new SyncId(['slug']),
-                        'nullable' => false,
-                        'autoincrement' => true,
-                        'isPrimaryKey' => true,
-                    ]),
+                'id' => new ExportModifySimpleColumn(...[
+                    'tableName' => 'slug_threes',
+                    'keyName' => 'id',
+                    'uniqueKeyName' => new SyncId(['slug']),
+                    'nullable' => false,
+                    'autoincrement' => true,
+                    'isPrimaryKey' => true,
+                ]),
             ],
         ];
 
-        return [
-            'handleModifyInfo SlugFirst belongsTo lvl2' => [
-                [
-                    'slug_firsts' => [
-                        'table' => 'slug_firsts',
-                        'items' => [
-                            1 => [
-                                'id' => 1,
-                                'slug' => 'sf1',
-                                'slug_three_id' => 1
-                            ],
-                            2 => [
-                                'id' => 2,
-                                'slug' => 'sf2',
-                                'slug_three_id' => null
-                            ],
-                        ],
-                        'syncId' => new SyncId(['slug'])
-                    ],
-                    'slug_threes' => [
-                        'table' => 'slug_threes',
-                        'items' => [
-                            1 => [
-                                'id' => 1,
-                                'slug' => 'st1',
-                                'slug_second_id' => null
-                            ],
-                        ],
-                        'syncId' => new SyncId(['slug'])
-                    ]
-                ],
-                $slugFirstModifyInfo,
-                [
-                    'slug_firsts' => [
+        yield 'handleModifyInfo SlugFirst belongsTo lvl2' => [
+            [
+                'slug_firsts' => [
+                    'table' => 'slug_firsts',
+                    'items' => [
                         1 => [
-                            'id' => 'sf1',
+                            'id' => 1,
                             'slug' => 'sf1',
-                            'slug_three_id' => 'st1',
+                            'slug_three_id' => 1,
                         ],
                         2 => [
-                            'id' => 'sf2',
+                            'id' => 2,
                             'slug' => 'sf2',
                             'slug_three_id' => null,
-                        ]
-                    ],
-                    'slug_threes' => [
-                        1 => [
-                            'id' => 'st1',
-                            'slug' => 'st1',
-                            'slug_second_id' => null
                         ],
-                    ]
+                    ],
+                    'syncId' => new SyncId(['slug']),
+                ],
+                'slug_threes' => [
+                    'table' => 'slug_threes',
+                    'items' => [
+                        1 => [
+                            'id' => 1,
+                            'slug' => 'st1',
+                            'slug_second_id' => null,
+                        ],
+                    ],
+                    'syncId' => new SyncId(['slug']),
+                ],
+            ],
+            $slugFirstModifyInfo,
+            [
+                'slug_firsts' => [
+                    1 => [
+                        'id' => 'sf1',
+                        'slug' => 'sf1',
+                        'slug_three_id' => 'st1',
+                    ],
+                    2 => [
+                        'id' => 'sf2',
+                        'slug' => 'sf2',
+                        'slug_three_id' => null,
+                    ],
+                ],
+                'slug_threes' => [
+                    1 => [
+                        'id' => 'st1',
+                        'slug' => 'st1',
+                        'slug_second_id' => null,
+                    ],
                 ],
             ],
         ];
     }
 
-    public static function provide_collect_morph_one_relations(): array
+    public static function provide_collect_morph_one_relations(): Iterator
     {
         $slogFoursModifyInfo = [
             'slug_firsts' => [
@@ -162,72 +158,70 @@ final class RelationsExporterModifyColumnsValuesTest extends BaseTestCase
                     nullable: false,
                     autoincrement: false,
                     isPrimaryKey: false,
-                )
+                ),
             ],
         ];
 
-        return [
-            'handleModifyInfo morphTo' => [
-                [
-                    'slug_firsts' => [
-                        'table' => 'slug_firsts',
-                        'items' => [
-                            1 => [
-                                'id' => 1,
-                                'slug' => 'sf1',
-                            ],
-                            2 => [
-                                'id' => 2,
-                                'slug' => 'sf2',
-                            ],
-                        ],
-                        'syncId' => new SyncId(['slug'])
-                    ],
-                    'slug_fours' => [
-                        'table' => 'slug_fours',
-                        'items' => [
-                            1 => [
-                                'id' => 1,
-                                'slug' => 'sfo1',
-                                'slug_fourable_type' => SlugFirst::class,
-                                'slug_fourable_id' => 2,
-                            ],
-                            2 => [
-                                'id' => 2,
-                                'slug' => 'sfo2',
-                                'slug_fourable_type' => SlugFirst::class,
-                                'slug_fourable_id' => 1
-                            ],
-                        ],
-                        'syncId' => new SyncId(['slug'])
-                    ]
-                ],
-                $slogFoursModifyInfo,
-                [
-                    'slug_firsts' => [
+        yield 'handleModifyInfo morphTo' => [
+            [
+                'slug_firsts' => [
+                    'table' => 'slug_firsts',
+                    'items' => [
                         1 => [
-                            'id' => 'sf1',
+                            'id' => 1,
                             'slug' => 'sf1',
                         ],
                         2 => [
-                            'id' => 'sf2',
+                            'id' => 2,
                             'slug' => 'sf2',
-                        ]
+                        ],
                     ],
-                    'slug_fours' => [
+                    'syncId' => new SyncId(['slug']),
+                ],
+                'slug_fours' => [
+                    'table' => 'slug_fours',
+                    'items' => [
                         1 => [
-                            'id' => 'sfo1',
+                            'id' => 1,
                             'slug' => 'sfo1',
                             'slug_fourable_type' => SlugFirst::class,
-                            'slug_fourable_id' => 'sf2',
+                            'slug_fourable_id' => 2,
                         ],
                         2 => [
-                            'id' => 'sfo2',
+                            'id' => 2,
                             'slug' => 'sfo2',
                             'slug_fourable_type' => SlugFirst::class,
-                            'slug_fourable_id' => 'sf1',
+                            'slug_fourable_id' => 1,
                         ],
-                    ]
+                    ],
+                    'syncId' => new SyncId(['slug']),
+                ],
+            ],
+            $slogFoursModifyInfo,
+            [
+                'slug_firsts' => [
+                    1 => [
+                        'id' => 'sf1',
+                        'slug' => 'sf1',
+                    ],
+                    2 => [
+                        'id' => 'sf2',
+                        'slug' => 'sf2',
+                    ],
+                ],
+                'slug_fours' => [
+                    1 => [
+                        'id' => 'sfo1',
+                        'slug' => 'sfo1',
+                        'slug_fourable_type' => SlugFirst::class,
+                        'slug_fourable_id' => 'sf2',
+                    ],
+                    2 => [
+                        'id' => 'sfo2',
+                        'slug' => 'sfo2',
+                        'slug_fourable_type' => SlugFirst::class,
+                        'slug_fourable_id' => 'sf1',
+                    ],
                 ],
             ],
         ];
@@ -243,54 +237,50 @@ final class RelationsExporterModifyColumnsValuesTest extends BaseTestCase
         $exportModifier->modifyColumnsValues($modifyInfo);
     }
 
-    public static function provide_error_modify_columns_values(): array
+    public static function provide_error_modify_columns_values(): Iterator
     {
         $slugFirstModifyInfo = [
             'slug_firsts' => [
-                'slug_three_id' =>
-                    new ExportModifyForeignColumn(...[
-                        'tableName' => 'slug_firsts',
-                        'keyName' => 'slug_three_id',
-                        'foreignTableName' => 'slug_threes',
-                        'foreignUniqueKeyName' => new SyncId(['slug']),
-                        'foreignOldKeyName' => 'id',
-                        'nullable' => true,
-                        'autoincrement' => false,
-                        'isPrimaryKey' => false,
-                    ]),
-                'id' =>
-                    new ExportModifySimpleColumn(...[
-                        'tableName' => 'slug_firsts',
-                        'keyName' => 'id',
-                        'uniqueKeyName' => new SyncId(['slug']),
-                        'nullable' => false,
-                        'autoincrement' => true,
-                        'isPrimaryKey' => true,
-                    ]),
+                'slug_three_id' => new ExportModifyForeignColumn(...[
+                    'tableName' => 'slug_firsts',
+                    'keyName' => 'slug_three_id',
+                    'foreignTableName' => 'slug_threes',
+                    'foreignUniqueKeyName' => new SyncId(['slug']),
+                    'foreignOldKeyName' => 'id',
+                    'nullable' => true,
+                    'autoincrement' => false,
+                    'isPrimaryKey' => false,
+                ]),
+                'id' => new ExportModifySimpleColumn(...[
+                    'tableName' => 'slug_firsts',
+                    'keyName' => 'id',
+                    'uniqueKeyName' => new SyncId(['slug']),
+                    'nullable' => false,
+                    'autoincrement' => true,
+                    'isPrimaryKey' => true,
+                ]),
             ],
         ];
-        return [
-            'error handleModifyInfo SlugFirst belongsTo lvl1 (slug_three_id)' => [
-                [
-                    'slug_firsts' => [
-                        'table' => 'slug_firsts',
-                        'items' => [
-                            1 => [
-                                'id' => 1,
-                                'slug' => 'sf1',
-                                'slug_three_id' => 1
-                            ],
-                            2 => [
-                                'id' => 2,
-                                'slug' => 'sf2',
-                                'slug_three_id' => null
-                            ],
+        yield 'error handleModifyInfo SlugFirst belongsTo lvl1 (slug_three_id)' => [
+            [
+                'slug_firsts' => [
+                    'table' => 'slug_firsts',
+                    'items' => [
+                        1 => [
+                            'id' => 1,
+                            'slug' => 'sf1',
+                            'slug_three_id' => 1,
                         ],
-                        'syncId' => new SyncId(['slug'])
+                        2 => [
+                            'id' => 2,
+                            'slug' => 'sf2',
+                            'slug_three_id' => null,
+                        ],
                     ],
+                    'syncId' => new SyncId(['slug']),
                 ],
-                $slugFirstModifyInfo,
             ],
+            $slugFirstModifyInfo,
         ];
     }
 }

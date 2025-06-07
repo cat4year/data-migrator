@@ -14,20 +14,17 @@ use Cat4year\DataMigratorTests\Database\Factory\SlugFirstFactory;
 use Cat4year\DataMigratorTests\Database\Factory\SlugFourFactory;
 use Cat4year\DataMigratorTests\Database\Factory\SlugSecondFactory;
 use Cat4year\DataMigratorTests\Database\Factory\SlugThreeFactory;
+use Cat4year\DataMigratorTests\Feature\BaseTestCase;
 use Illuminate\Contracts\Container\BindingResolutionException;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Cat4year\DataMigratorTests\Feature\BaseTestCase;
 
 final class RelationsExporterModifyInfoTest extends BaseTestCase
 {
     use DatabaseMigrations; // clean autoincrement. slowly
 
     /**
-     * @param array<class-string<Model>, list<int|string>> $excepted
-     *
      * @throws BindingResolutionException
      */
     #[DataProvider('provide_collect_belongs_to_relations')]
@@ -53,7 +50,7 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
                 $entities = [
                     $slugFirst->getTable() => [
                         'table' => $slugFirst->getTable(),
-                        'items' => [$slugFirst->id => $slugFirst->getAttributes(), $slugFirst2->id => $slugFirst2->getAttributes()]
+                        'items' => [$slugFirst->id => $slugFirst->getAttributes(), $slugFirst2->id => $slugFirst2->getAttributes()],
                     ],
                 ];
 
@@ -63,7 +60,7 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
                         'entityClasses' => new Collection([
                             $slugFirst::class => [
                                 $relationName => $slugFirst->$relationName(),
-                            ]
+                            ],
                         ]),
                     ]),
                     [
@@ -129,7 +126,7 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
                 $entities = [
                     $slugFirst->getTable() => [
                         'table' => $slugFirst->getTable(),
-                        'items' => [$slugFirst->id => $slugFirst->getAttributes(), $slugFirst2->id => $slugFirst2->getAttributes()]
+                        'items' => [$slugFirst->id => $slugFirst->getAttributes(), $slugFirst2->id => $slugFirst2->getAttributes()],
                     ],
                 ];
 
@@ -139,7 +136,7 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
                         'entityClasses' => new Collection([
                             $slugFirst::class => [
                                 $morphOneRelationName => $slugFirst->$morphOneRelationName(),
-                            ]
+                            ],
                         ]),
                     ]),
                     [
@@ -172,7 +169,7 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
                                     nullable: false,
                                     autoincrement: false,
                                     isPrimaryKey: false,
-                                )
+                                ),
                             ],
                         ],
                     ],
@@ -196,11 +193,11 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
                 $entities = [
                     $slugFirst->getTable() => [
                         'table' => $slugFirst->getTable(),
-                        'items' => [$slugFirst->id => $slugFirst->getAttributes(), $slugFirst2->id => $slugFirst2->getAttributes()]
+                        'items' => [$slugFirst->id => $slugFirst->getAttributes(), $slugFirst2->id => $slugFirst2->getAttributes()],
                     ],
                     $slugFour->getTable() => [
                         'table' => $slugFour->getTable(),
-                        'items' => [$slugFour->id => $slugFour->getAttributes(), $slugFour2->id => $slugFour2->getAttributes()]
+                        'items' => [$slugFour->id => $slugFour->getAttributes(), $slugFour2->id => $slugFour2->getAttributes()],
                     ],
                 ];
 
@@ -210,7 +207,7 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
                         'entityClasses' => new Collection([
                             $slugFour::class => [
                                 $relationName => $slugFour->$relationName(),
-                            ]
+                            ],
                         ]),
                     ]),
                     [
@@ -243,7 +240,7 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
                                     nullable: false,
                                     autoincrement: false,
                                     isPrimaryKey: false,
-                                )
+                                ),
                             ],
                         ],
                     ],
@@ -277,8 +274,8 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
                             'table' => $slugFirst->getTable(),
                             'items' => [
                                 $slugFirst->id => $slugFirst->getAttributes(),
-                                $slugFirst2->id => $slugFirst2->getAttributes()
-                            ]
+                                $slugFirst2->id => $slugFirst2->getAttributes(),
+                            ],
                         ],
                     ];
 
@@ -288,7 +285,7 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
                             'entityClasses' => new Collection([
                                 $slugFirst::class => [
                                     $morphToManyRelation => $slugFirst->$morphToManyRelation(),
-                                ]
+                                ],
                             ]),
                         ]),
                         [
@@ -334,11 +331,11 @@ final class RelationsExporterModifyInfoTest extends BaseTestCase
                                         autoincrement: false,
                                         isPrimaryKey: false,
                                     ),
-                                ]
+                                ],
                             ],
                         ],
                     ];
-                }
+                },
             ],
         ];
     }

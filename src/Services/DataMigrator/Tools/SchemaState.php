@@ -14,7 +14,7 @@ final class SchemaState
 
     public function columns(string $table): array
     {
-        if (!isset($this->columns[$table])) {
+        if (! isset($this->columns[$table])) {
             $columns = Schema::getColumns($table);
             $result = array_column($columns, null, 'name');
             $this->columns[$table] = $result;
@@ -25,7 +25,7 @@ final class SchemaState
 
     public function indexes(string $table): array
     {
-        if (!isset($this->indexes[$table])) {
+        if (! isset($this->indexes[$table])) {
             $this->indexes[$table] = Schema::getIndexes($table);
         }
 
@@ -34,7 +34,7 @@ final class SchemaState
 
     public function hasIndex(string $table, array|string $index, ?string $type = null): bool
     {
-        $type = $type === null ? $type : strtolower($type);
+        $type = $type === null ? $type : mb_strtolower($type);
 
         foreach ($this->indexes($table) as $value) {
             $typeMatches = $type === null

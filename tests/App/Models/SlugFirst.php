@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Cat4year\DataMigratorTests\App\Models;
 
 use Cat4year\DataMigrator\Services\Configurations\SlugFirstConfiguration;
-use Illuminate\Database\Eloquent\Concerns\HasUniqueIds;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Cat4year\DataMigratorTests\Database\Factory\SlugFirstFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,7 +15,6 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Cat4year\DataMigratorTests\Database\Factory\SlugFirstFactory;
 
 /**
  * @mixin IdeHelperSlugFirst

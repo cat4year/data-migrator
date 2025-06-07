@@ -6,8 +6,9 @@ namespace Cat4year\DataMigrator\Entity;
 
 use Illuminate\Contracts\Support\Arrayable;
 use JsonSerializable;
+use RuntimeException;
 
-final class ExportModifyMorphColumn implements ExportModifyColumn, Arrayable, JsonSerializable
+final class ExportModifyMorphColumn implements Arrayable, ExportModifyColumn, JsonSerializable
 {
     /**
      * @param list<SyncId>|array<string, SyncId> $sourceKeyNames
@@ -22,8 +23,7 @@ final class ExportModifyMorphColumn implements ExportModifyColumn, Arrayable, Js
         private readonly bool $nullable,
         private readonly bool $autoincrement,
         private readonly bool $isPrimaryKey = false,
-    )
-    {
+    ) {
     }
 
     public function getSourceKeyNames(): array
@@ -35,7 +35,6 @@ final class ExportModifyMorphColumn implements ExportModifyColumn, Arrayable, Js
     {
         return $this->sourceOldKeyNames;
     }
-
 
     public function addOldKeyNames(array $oldKeyNames): void
     {
@@ -64,7 +63,7 @@ final class ExportModifyMorphColumn implements ExportModifyColumn, Arrayable, Js
 
     public function getSourceTableName(): string
     {
-        throw new \RuntimeException('Проблемка getSourceTableName');
+        throw new RuntimeException('Проблемка getSourceTableName');
     }
 
     public function getSourceTableNames(): array
@@ -74,7 +73,7 @@ final class ExportModifyMorphColumn implements ExportModifyColumn, Arrayable, Js
 
     public function getSourceKeyName(): string
     {
-        throw new \RuntimeException('Проблемка getSourceKeyName');
+        throw new RuntimeException('Проблемка getSourceKeyName');
     }
 
     public function getSourceUniqueKeyNameByTable(string $table): ?SyncId
@@ -89,7 +88,7 @@ final class ExportModifyMorphColumn implements ExportModifyColumn, Arrayable, Js
 
     public function getSourceUniqueKeyName(): SyncId
     {
-        throw new \RuntimeException('Проблемка getSourceUniqueKeyName');
+        throw new RuntimeException('Проблемка getSourceUniqueKeyName');
     }
 
     public function isNullable(): bool

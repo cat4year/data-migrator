@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigratorTests\App\Models;
 
+use Cat4year\DataMigratorTests\Database\Factory\SlugThreeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Cat4year\DataMigratorTests\Database\Factory\SlugThreeFactory;
 
 /**
  * @mixin IdeHelperSlugThree

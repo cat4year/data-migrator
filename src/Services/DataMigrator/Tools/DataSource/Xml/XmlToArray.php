@@ -51,7 +51,7 @@ final readonly class XmlToArray
 
         foreach ($domElement->childNodes as $node) {
             if (array_key_exists($node->nodeName, $sameNames)) {
-                ++$sameNames[$node->nodeName];
+                $sameNames[$node->nodeName]++;
             } else {
                 $sameNames[$node->nodeName] = 0;
             }

@@ -92,12 +92,19 @@
         ],
         "lint": [
             "@ide",
+            "@rector",
             "@pint"
         ],
         "rector": [
             "sh scripts/rector.sh"
         ],
-        "prepare": "@php vendor/bin/testbench package:discover --ansi",
+        "prepare": [
+            "@ide",
+            "@phpstan",
+            "@rector",
+            "@pint"
+        ],
+        "prepare-testbench": "@php vendor/bin/testbench package:discover --ansi",
         "test": [
             "@php ./vendor/bin/testbench test -c ./phpunit.xml"
         ],

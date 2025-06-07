@@ -13,6 +13,7 @@ use Cat4year\DataMigrator\Services\DataMigrator\Export\Exporter;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Relations\RelationsExporter;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Cat4year\DataMigratorTests\App\Models\SlugFirst;
+use Cat4year\DataMigratorTests\Feature\BaseTestCase;
 use Cat4year\DataMigratorTests\Resource\Export\ExporterTestSeeder;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
@@ -20,7 +21,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Cat4year\DataMigratorTests\Feature\BaseTestCase;
 use RuntimeException;
 
 final class ExporterExportDataTest extends BaseTestCase
@@ -34,15 +34,14 @@ final class ExporterExportDataTest extends BaseTestCase
      */
     #[DataProvider('provide_export_belongs_to_data')]
     #[DataProvider('provide_export_morph_one_data')]
-    public function test_exportData(
+    public function test_export_data(
         string $entityClass,
         array $ids,
         int $maxDepth,
         string $seederClass,
         array $excepted,
         ?string $relationTypeClass = null,
-    ): void
-    {
+    ): void {
         $this->seed($seederClass);
         $configurator = app(ExportConfigurator::class);
         $configurator->setIds($ids)->setMaxRelationDepth($maxDepth);
@@ -50,12 +49,14 @@ final class ExporterExportDataTest extends BaseTestCase
             $configurator->setSupportedRelations([$relationTypeClass]);
         }
 
-        $relationsExporter = app()->makeWith(RelationsExporter::class, compact('configurator'));
-        $exporter = app()->makeWith(Exporter::class,
+        $relationsExporter = app()->makeWith(RelationsExporter::class, ['configurator' => $configurator]);
+        $exporter = app()->makeWith(
+            Exporter::class,
             [
                 'relationManager' => $relationsExporter,
-                'entity' => app(TableService::class)->identifyModelByTable($entityClass)
-            ]);
+                'entity' => app(TableService::class)->identifyModelByTable($entityClass),
+            ]
+        );
 
         $this->assertEquals($excepted, $this->prepareForAssert($exporter->exportData()));
     }
@@ -73,7 +74,7 @@ final class ExporterExportDataTest extends BaseTestCase
 
     private function removeKeysFromItems(array $tableData, array $keysForRemove): array
     {
-        if (!isset($tableData['items']) || !is_array($tableData['items'])) {
+        if (! isset($tableData['items']) || ! is_array($tableData['items'])) {
             return $tableData;
         }
 
@@ -109,7 +110,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'slug' => 'hic-sit-illum',
                                 'created_at' => '2025-05-13 02:44:18',
                                 'name' => 'Quia ipsa quas ut dolor nostr...eaque.',
-                                'slug_first_id' => 'consectetur-illum-voluptatibus'
+                                'slug_first_id' => 'consectetur-illum-voluptatibus',
                             ],
                             'enim' => [
                                 'id' => 'enim',
@@ -139,7 +140,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => false,
                             ]),
                         ],
-                        'syncId' => new SyncId(['slug'])
+                        'syncId' => new SyncId(['slug']),
                     ],
                     'slug_firsts' => [
                         'items' => [
@@ -194,7 +195,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => true,
                             ]),
                         ],
-                        'syncId' => new SyncId(['slug'])
+                        'syncId' => new SyncId(['slug']),
                     ],
                     'slug_threes' => [
                         'items' => [
@@ -233,8 +234,8 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => false,
                             ]),
                         ],
-                        'syncId' => new SyncId(['slug'])
-                    ]
+                        'syncId' => new SyncId(['slug']),
+                    ],
                 ],
                 BelongsTo::class,
             ],
@@ -293,7 +294,7 @@ final class ExporterExportDataTest extends BaseTestCase
                                 'isPrimaryKey' => true,
                             ]),
                         ],
-                        'syncId' => new SyncId(['slug'])
+                        'syncId' => new SyncId(['slug']),
                     ],
                     'slug_fours' => [
                         'items' => [
@@ -332,10 +333,10 @@ final class ExporterExportDataTest extends BaseTestCase
                                 nullable: false,
                                 autoincrement: false,
                                 isPrimaryKey: false,
-                            )
+                            ),
                         ],
-                        'syncId' => new SyncId(['slug'])
-                    ]
+                        'syncId' => new SyncId(['slug']),
+                    ],
                 ],
                 MorphOne::class,
             ],
@@ -343,14 +344,13 @@ final class ExporterExportDataTest extends BaseTestCase
     }
 
     #[DataProvider('provide_exception_export_belongs_to_data')]
-    public function test_exception_exportData(
+    public function test_exception_export_data(
         string $entityClass,
         array $ids,
         int $maxDepth,
         string $seederClass,
         ?string $relationTypeClass = null,
-    ): void
-    {
+    ): void {
         $this->seed($seederClass);
         $configurator = app(ExportConfigurator::class);
         $configurator->setIds($ids)->setMaxRelationDepth($maxDepth);
@@ -358,12 +358,14 @@ final class ExporterExportDataTest extends BaseTestCase
             $configurator->setSupportedRelations([$relationTypeClass]);
         }
 
-        $relationsExporter = app()->makeWith(RelationsExporter::class, compact('configurator'));
-        $exporter = app()->makeWith(Exporter::class,
+        $relationsExporter = app()->makeWith(RelationsExporter::class, ['configurator' => $configurator]);
+        $exporter = app()->makeWith(
+            Exporter::class,
             [
                 'relationManager' => $relationsExporter,
-                'entity' => app(TableService::class)->identifyModelByTable($entityClass)
-            ]);
+                'entity' => app(TableService::class)->identifyModelByTable($entityClass),
+            ]
+        );
 
         $this->expectException(RuntimeException::class);
         $exporter->exportData();

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigratorTests\Database\Factory;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 use Cat4year\DataMigratorTests\App\Models\SlugFirst;
 use Cat4year\DataMigratorTests\App\Models\SlugFour;
 use Cat4year\DataMigratorTests\App\Models\SlugSecond;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends Factory<SlugFour>

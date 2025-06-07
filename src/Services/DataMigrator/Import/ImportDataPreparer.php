@@ -53,7 +53,6 @@ final readonly class ImportDataPreparer
      * @param array $item Элемент для обработки
      * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes Правила модификации атрибутов
      * @param SupportCollection<int, SupportCollection> $supportCollection Существующие элементы
-     * @param string $uniqueKeyName Имя уникального ключа
      * @return array Обработанный элемент
      */
     private function itemWithAutoincrementRelationFields(
@@ -104,7 +103,6 @@ final readonly class ImportDataPreparer
         array $needFixLater,
         array $syncId,
     ): array {
-
         if ($supportCollection?->isNotEmpty()) {
             $maybeModifiedItem = $this->invertModifyAttribute(
                 $item,
@@ -121,7 +119,7 @@ final readonly class ImportDataPreparer
         }
 
         if (
-            !in_array($attributeKeyName, $syncId, true)
+            ! in_array($attributeKeyName, $syncId, true)
             && $exportModifyColumn->isNullable()
             && in_array($attributeKeyName, $needFixLater, true)
         ) {
@@ -143,7 +141,7 @@ final readonly class ImportDataPreparer
         string $attributeKeyName,
         ExportModifyColumn $exportModifyColumn
     ): array {
-        if (!$supportCollection instanceof SupportCollection || $supportCollection->isEmpty()) {
+        if (! $supportCollection instanceof SupportCollection || $supportCollection->isEmpty()) {
             return $item;
         }
 
@@ -198,21 +196,22 @@ final readonly class ImportDataPreparer
 
     /**
      * @todo: В морф таблице так-то primaryKey не будет в modifiedAttributes
+     *
      * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
      */
     private function getPrimaryKeyForUnsetBeforeSync(string $tableName, array $modifiedAttributes): ?string
     {
         $primaryKeyColumn = $this->getPrimaryKeyColumn($modifiedAttributes);
 
-        if (!$primaryKeyColumn instanceof ExportModifySimpleColumn) {
-            return $this->tableService->identifyPrimaryKeyNameByTable($tableName);;
+        if (! $primaryKeyColumn instanceof ExportModifySimpleColumn) {
+            return $this->tableService->identifyPrimaryKeyNameByTable($tableName);
         }
 
         $syncId = $primaryKeyColumn->getSourceUniqueKeyName();
         $sourceKeyName = $primaryKeyColumn->getSourceKeyName();
 
         if ($syncId === $sourceKeyName) {
-            $sourceKeyName = null;
+            return null;
         }
 
         return $sourceKeyName;
@@ -220,12 +219,13 @@ final readonly class ImportDataPreparer
 
     /**
      * @todo: В морф таблице так-то primaryKey не будет в modifiedAttributes
+     *
      * @param array<non-empty-string, ExportModifyColumn> $modifiedAttributes
      */
     private function getPrimaryKeyColumn(array $modifiedAttributes): ?ExportModifySimpleColumn
     {
         return collect($modifiedAttributes)
-            ->first(static fn(ExportModifyColumn $exportModifyColumn): bool => $exportModifyColumn instanceof ExportModifySimpleColumn && $exportModifyColumn->isPrimaryKey());
+            ->first(static fn (ExportModifyColumn $exportModifyColumn): bool => $exportModifyColumn instanceof ExportModifySimpleColumn && $exportModifyColumn->isPrimaryKey());
     }
 
     /**
@@ -238,7 +238,7 @@ final readonly class ImportDataPreparer
         $fixLaterFields = [];
 
         foreach ($modifiedAttributes as $attributeKeyName => $modifyAttributeData) {
-            if (!in_array($attributeKeyName, $syncId, true) && $modifyAttributeData->isNullable()) {
+            if (! in_array($attributeKeyName, $syncId, true) && $modifyAttributeData->isNullable()) {
                 $fixLaterFields[] = $attributeKeyName;
             }
         }
@@ -259,13 +259,13 @@ final readonly class ImportDataPreparer
         $result = [];
         foreach ($items as $item) {
             foreach ($attributesForFixKeyName as $attributeForFixKeyName) {
-                if(!isset($attributesMetaData[$attributeForFixKeyName])){
+                if (! isset($attributesMetaData[$attributeForFixKeyName])) {
                     continue;
                 }
 
                 $attributeModify = $attributesMetaData[$attributeForFixKeyName];
-                if($attributeModify instanceof ExportModifyMorphColumn){
-                    foreach(array_keys($attributeModify->getSourceTableNames()) as $sourceTableName){
+                if ($attributeModify instanceof ExportModifyMorphColumn) {
+                    foreach (array_keys($attributeModify->getSourceTableNames()) as $sourceTableName) {
                         $existRelationTableItems = $supportCollection->get($sourceTableName);
                         $item = $this->invertModifyAttribute(
                             $item,
@@ -275,7 +275,7 @@ final readonly class ImportDataPreparer
                         );
                     }
                 } else {
-                    $existRelationTableItems = $supportCollection->get($attributeModify->getSourceTableName());//todo: а морф?
+                    $existRelationTableItems = $supportCollection->get($attributeModify->getSourceTableName()); // todo: а морф?
 
                     $item = $this->invertModifyAttribute(
                         $item,
@@ -284,7 +284,6 @@ final readonly class ImportDataPreparer
                         $attributeModify
                     );
                 }
-
             }
 
             $result[] = $item;
@@ -311,7 +310,7 @@ final readonly class ImportDataPreparer
                 $newItem[$neededAttribute] = $item[$neededAttribute];
             }
 
-           // $uniqueIdAttributeValue = $item[$primaryColumnKeyName];
+            // $uniqueIdAttributeValue = $item[$primaryColumnKeyName];
             $result[$syncId->keyStringByValues($item)] = $newItem;
         }
 
