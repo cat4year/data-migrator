@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Cat4year\DataMigratorTests\Feature\Export\Relations;
+namespace Cat4year\DataMigratorTests\Feature\Export;
 
 use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
 use Cat4year\DataMigrator\Entity\ExportModifyMorphColumn;

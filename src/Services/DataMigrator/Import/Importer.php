@@ -80,7 +80,7 @@ final readonly class Importer
             $itemsForSync = $this->importDataPreparer->beforeSyncWithDatabase(
                 $tableName,
                 $tableData['items'],
-                $tableData['modifiedAttributes'],
+                $tableData['modifiedAttributes'] ?? [],
             );
 
             $this->syncWithDatabase($tableName, $syncId, $itemsForSync);

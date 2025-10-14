@@ -22,7 +22,7 @@ final class SlugFirstFactory extends Factory
     public function definition(): array
     {
         return [
-            'slug' => Str::slug(fake()->sentence(fake()->numberBetween(1, 3)), '-'),
+            'slug' => Str::slug(fake()->unique()->sentence(fake()->numberBetween(1, 3)), '-'),
             'bool_test' => fake()->boolean(),
             'timestamp_test' => fake()->dateTime(),
             'string_test' => fake()->realText(),

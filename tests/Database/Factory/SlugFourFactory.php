@@ -25,7 +25,7 @@ final class SlugFourFactory extends Factory
     public function definition(): array
     {
         return [
-            'slug' => Str::slug(fake()->sentence(fake()->numberBetween(1, 3))),
+            'slug' => Str::slug(fake()->unique()->sentence(fake()->numberBetween(1, 3))),
             'name' => fake()->sentence(),
             'slug_fourable_type' => fake()->randomElement([
                 SlugFirst::class,

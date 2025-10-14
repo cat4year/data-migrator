@@ -42,7 +42,7 @@ final class RelationsExporterCollectTest extends BaseTestCase
         ?string $relationTypeClass = null,
     ): void {
         $this->seed($seederClass);
-        $configurator = app(ExportConfigurator::class); // use mock instead?
+        $configurator = app(ExportConfigurator::class);
         $configurator->setMaxRelationDepth($maxDepth);
         if ($relationTypeClass !== null) {
             $configurator->setSupportedRelations([$relationTypeClass]);

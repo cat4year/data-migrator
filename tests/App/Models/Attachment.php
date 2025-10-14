@@ -59,7 +59,7 @@ final class Attachment extends Model
         return $this->url();
     }
 
-    protected function relativeUrl(): Attribute
+    private function relativeUrl(): Attribute
     {
         return Attribute::make(get: function () {
             $url = $this->url();
@@ -71,7 +71,7 @@ final class Attachment extends Model
         });
     }
 
-    protected function title(): Attribute
+    private function title(): Attribute
     {
         return Attribute::make(get: function () {
             if ($this->original_name !== 'blob') {

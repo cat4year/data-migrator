@@ -13,13 +13,12 @@ final readonly class SyncId implements Arrayable, JsonSerializable
 {
     private string $hash;
 
-    /**
-     * @var array<string, mixed>
-     */
     public function __construct(
         private array $columns,
     ) {
-        throw_if($columns === [], new InvalidArgumentException('SyncId cannot be empty.'));
+        if ($columns === []) {
+            throw new InvalidArgumentException('SyncId cannot be empty.');
+        }
 
         $this->hash = self::makeHash($columns);
     }
@@ -29,8 +28,9 @@ final readonly class SyncId implements Arrayable, JsonSerializable
         $result = [];
 
         foreach ($this->columns as $column) {
-            // tra(test: $values, cc: $column)->context(filename: 'test')->stackTrace();
-            throw_unless(isset($values[$column]), new LogicException('Column not found in values'));
+            if (! array_key_exists($column, $values)) {
+                throw new LogicException('Column not found in values');
+            }
 
             $result[] = $values[$column];
         }
@@ -38,20 +38,9 @@ final readonly class SyncId implements Arrayable, JsonSerializable
         return implode('|', $result);
     }
 
-    public function getAttributeValue(array $values, string $attribute): string
-    {
-        $result = [];
-
-        foreach ($this->columns as $column) {
-            // tra(test: $values, cc: $column)->context(filename: 'test')->stackTrace();
-            throw_unless(isset($values[$column]), new LogicException('Column not found in values'));
-
-            $result[] = $values[$column];
-        }
-
-        return implode('|', $result);
-    }
-
+    /**
+     * @param list<string>|string $keys
+     */
     public static function makeHash(array|string $keys): string
     {
         if (is_string($keys)) {
