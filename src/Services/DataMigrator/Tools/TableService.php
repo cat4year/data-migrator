@@ -117,7 +117,7 @@ final readonly class TableService
         $columns = $this->schemaState->columns($tableName);
         $columnNullableByName = array_column($columns, 'nullable', 'name');
 
-        return $columnNullableByName[$columnName] === true;
+        return isset($columnNullableByName[$columnName]) && $columnNullableByName[$columnName] === true;
     }
 
     public function isAutoincrementColumn(string $tableName, string $columnName): bool

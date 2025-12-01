@@ -7,6 +7,8 @@ namespace Cat4year\DataMigrator\Providers;
 use Cat4year\DataMigrator\Console\Commands\CreateMigrationCommand;
 use Cat4year\DataMigrator\Console\Commands\PintFileCommand;
 use Cat4year\DataMigrator\Services\DataMigrator\MigratorCreator;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\Attachment\AttachmentSaver;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\Attachment\OrchidAttachmentSaver;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\MigrationDataSourceFormat;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\Php\PhpMigrationDataSourceFormat;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\SchemaState;
@@ -19,6 +21,7 @@ final class DataMigratorServiceProvider extends ServiceProvider
     public array $bindings = [
         // MigrationDataSourceFormat::class => XmlMigrationDataSourceFormat::class,
         MigrationDataSourceFormat::class => PhpMigrationDataSourceFormat::class,
+        AttachmentSaver::class => OrchidAttachmentSaver::class,
     ];
 
     #[Override]
@@ -44,6 +47,7 @@ final class DataMigratorServiceProvider extends ServiceProvider
 
         $this->publishes([
             __DIR__ . '/../../config/data-migrator.php' => config_path('data-migrator.php'),
+            'data-migrator-config'
         ]);
     }
 

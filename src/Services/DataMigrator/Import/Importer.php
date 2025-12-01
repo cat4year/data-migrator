@@ -7,13 +7,14 @@ namespace Cat4year\DataMigrator\Services\DataMigrator\Import;
 use Cat4year\DataMigrator\Entity\ExportModifyColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Entity\SyncId;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\Attachment\AttachmentSaver;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\CollectionMerger;
-use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use stdClass;
+use Throwable;
 
 final readonly class Importer
 {
@@ -28,9 +29,11 @@ final readonly class Importer
     ) {
     }
 
-    public function import(ImportData $importData): void
+    public function import(ImportData $importData, string $migrationName): void
     {
         $data = $importData->get();
+
+        $this->handleAttachments($data, $migrationName);
         $this->importData($data);
     }
 
@@ -132,7 +135,12 @@ final readonly class Importer
             $syncIdWithValues = [];
             $attributesItemOnlyForUpdate = $itemData;
             foreach ($syncId as $syncColumn) {
-                $syncIdWithValues[$syncColumn] = $itemData[$syncColumn];
+                try{
+                    $syncIdWithValues[$syncColumn] = $itemData[$syncColumn];
+                } catch (Throwable){
+                    dd($itemData);
+                }
+
                 unset($attributesItemOnlyForUpdate[$syncColumn]);
             }
 
@@ -286,5 +294,10 @@ final readonly class Importer
         }
 
         unset($item);
+    }
+
+    private function handleAttachments(array $data, string $migrationName): void
+    {
+        app(AttachmentSaver::class)->upAttachments($data, $migrationName);
     }
 }

@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        app(Importer::class)->import($this->data());
+        app(Importer::class)->import($this->data(), sprintf('%s/%s/%s', __DIR__, 'attachments', basename(__FILE__, '.php')));
     }
 
     public function down(): void

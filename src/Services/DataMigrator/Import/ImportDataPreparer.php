@@ -210,7 +210,7 @@ final readonly class ImportDataPreparer
         $syncId = $primaryKeyColumn->getSourceUniqueKeyName();
         $sourceKeyName = $primaryKeyColumn->getSourceKeyName();
 
-        if ($syncId === $sourceKeyName) {
+        if ($syncId->hash() === $sourceKeyName) {
             return null;
         }
 

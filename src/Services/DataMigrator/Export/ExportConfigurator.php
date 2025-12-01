@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export;
 
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\Attachment\AttachmentSaver;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\MigrationDataSourceFormat;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\Php\PhpMigrationDataSourceFormat;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\DataSource\Xml\XmlMigrationDataSourceFormat;
@@ -47,10 +48,14 @@ final class ExportConfigurator
 
     private array $ids = [];
 
+
+    private readonly AttachmentSaver $attachmentSaver;
+
     public function __construct(
         private readonly MigrationDataSourceFormat $migrationDataSourceFormat,
-        private Filesystem $filesystem
-    ) {
+        private Filesystem $filesystem,
+    )
+    {
     }
 
     public static function create(): self
@@ -89,6 +94,18 @@ final class ExportConfigurator
         }
 
         return ($fileName ?: $this->fileName) . '.' . $format;
+    }
+
+    public function getAttachmentSaver(): AttachmentSaver
+    {
+        return $this->attachmentSaver;
+    }
+
+    public function setAttachmentSaver(AttachmentSaver $attachmentSaver): self
+    {
+        $this->attachmentSaver = $attachmentSaver;
+
+        return $this;
     }
 
     public function makeSourceFullPath(string $fileName = '', string $format = ''): string

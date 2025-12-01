@@ -74,7 +74,10 @@ final class SyncIdState
         while (true) {
             $potentialValue = $this->makePotentialSyncId($tableName);
 
-            if ($potentialValue === null) {
+            if (
+                $potentialValue === null
+                || (isset($this->potentialSyncIds[$tableName]) && in_array($potentialValue, $this->potentialSyncIds[$tableName], true))
+            ){
                 break;
             }
 
@@ -122,8 +125,11 @@ final class SyncIdState
                     }
 
                     if (
-                        $tableColumns[$uniqueId]['unique'] === true
-                        && ! $this->hasPotentialSyncId($tableName, $uniqueId)
+                        $tableColumns[$uniqueId]['type'] === 'uuid'
+                        || (
+                            $tableColumns[$uniqueId]['unique'] === true
+                            && ! $this->hasPotentialSyncId($tableName, $uniqueId)
+                        )
                     ) {
                         return $uniqueId;
                     }

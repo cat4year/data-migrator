@@ -56,7 +56,7 @@ final class CreateMigrationCommand extends Command
             return;
         }
 
-        $ids = $input->getOption('ids') ?? $this->ask('Ids');
+        $ids = $input->getOption('ids') ?? $this->ask('Ids') ?? '';
         $configurationClass = $input->getOption('config');
 
         $migrationPath = app(Migrator::class)->createByConfiguration(
@@ -64,7 +64,7 @@ final class CreateMigrationCommand extends Command
             $name,
             $path,
             $modelClass,
-            explode(',', mb_trim($ids))
+            !empty($ids) ? explode(',', mb_trim($ids)) : []
         );
 
         $this->info(sprintf('Created data-migration "%s"', $migrationPath));
@@ -128,17 +128,53 @@ final class CreateMigrationCommand extends Command
         $namespace = app()->getNamespace() . 'Models\\';
         $files = File::allFiles(app_path('Models'));
 
-        return collect($files)
+        $models = collect($files)
             ->map(static function (SplFileInfo $file) use ($namespace) {
                 $filePath = str_replace('.' . $file->getExtension(), '', $file->getRelativePathname());
 
                 return $namespace . str_replace('/', '\\', $filePath);
             })
             ->filter(static fn ($class): bool => class_exists($class) && is_subclass_of($class, Model::class))->values()->toArray();
+
+        // 2. Рекурсивный поиск всех php-файлов в packages
+        $packageFiles = collect(File::allFiles(base_path('packages')))
+            ->filter(fn (SplFileInfo $file) => $file->getExtension() === 'php');
+
+        $packageModels = $packageFiles
+            ->map(fn (SplFileInfo $file) => $this->getClassFromFile($file->getPathname()))
+            ->filter(fn ($class) => $class && class_exists($class) && is_subclass_of($class, Model::class))
+            ->values()
+            ->toArray();
+
+        return array_merge($models, $packageModels);
+    }
+
+    private function getClassFromFile(string $file): ?string
+    {
+        $contents = file_get_contents($file);
+
+        // Получаем namespace
+        if (preg_match('/namespace\s+(.+?);/', $contents, $matches)) {
+            $namespace = $matches[1];
+        } else {
+            return null;
+        }
+
+        // Получаем все классы в файле
+        if (preg_match_all('/class\s+(\w+)/', $contents, $matches)) {
+            foreach ($matches[1] as $class) {
+                $fullClass = $namespace . '\\' . $class;
+                if (class_exists($fullClass) && is_subclass_of($fullClass, Model::class)) {
+                    return $fullClass;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function getBasePath(): string
     {
-        return config('data-migrator.migrations_path', database_path('migrations'));
+        return config('data-migrator.migrations_path') ?? database_path('migrations');
     }
 }

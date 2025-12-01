@@ -6,6 +6,7 @@ namespace Cat4year\DataMigrator\Services\DataMigrator;
 
 use Cat4year\DataMigrator\Services\Configurations\DataMigratorConfiguration;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Exporter;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\Attachment\AttachmentSaver;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use RuntimeException;
@@ -45,12 +46,24 @@ final readonly class Migrator
 
         $fullPath = $exportConfigurator->makeSourceFullPath();
         $preparedExportData = $exportConfigurator->getSourceFormat()->prepareForMigration($exportData); // for xml will need add
-        $this->migratorCreator->createData(
+
+        $migrationDirectory = dirname($fullPath);
+
+        $migrationPath = $this->migratorCreator->createData(
             $exportConfigurator->getFileName(),
-            dirname($fullPath),
+            $migrationDirectory,
             $preparedExportData
         );
 
-        return $fullPath;
+        $nameWithDate = basename($migrationPath, '.php');
+        $this->createAttachments($exportConfigurator->getAttachmentSaver(), $exportData, $migrationDirectory, $nameWithDate);
+
+        return $migrationPath;
+    }
+
+    private function createAttachments(AttachmentSaver $attachmentSaver, array $exportData, string $directory, string $name): void
+    {
+        //todo: пока папка attachments статическая и рядом с создаваемым файлом миграции. Можно добавить настройку
+        $attachmentSaver->collectForMigration($exportData, $directory . '/attachments', $name);
     }
 }
