@@ -14,7 +14,8 @@ CHANGELOG.md export-ignore
 /tests/ export-ignore
 /src/Models export-ignore
 /database/ export-ignore
-/config/ export-ignore
+/scripts/ export-ignore
+/docker/ export-ignore
 /bootstrap/ export-ignore
 /public/ export-ignore
 /resource/ export-ignore
