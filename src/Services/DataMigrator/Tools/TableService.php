@@ -6,6 +6,7 @@ namespace Cat4year\DataMigrator\Services\DataMigrator\Tools;
 
 use Cat4year\DataMigrator\Entity\SyncId;
 use Illuminate\Database\Eloquent\Model;
+use ReflectionClass;
 use RuntimeException;
 
 final readonly class TableService
@@ -23,11 +24,15 @@ final readonly class TableService
     public function identifyModelByTable(string $table): ?Model
     {
         foreach (get_declared_classes() as $class) {
-            if (is_subclass_of($class, Model::class)) {
-                $model = new $class;
-                if ($model->getTable() === $table) {
-                    return $model;
-                }
+            $reflection = new ReflectionClass($class);
+
+            if (!is_subclass_of($class, Model::class) || $reflection->isAbstract()) {
+                continue;
+            }
+
+            $model = new $class;
+            if ($model->getTable() === $table) {
+                return $model;
             }
         }
 

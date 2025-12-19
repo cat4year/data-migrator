@@ -10,6 +10,7 @@ use Cat4year\DataMigrator\Services\DataMigrator\Migrator;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
+use ReflectionClass;
 use SplFileInfo;
 
 final class CreateMigrationCommand extends Command
@@ -142,7 +143,19 @@ final class CreateMigrationCommand extends Command
 
         $packageModels = $packageFiles
             ->map(fn (SplFileInfo $file) => $this->getClassFromFile($file->getPathname()))
-            ->filter(fn ($class) => $class && class_exists($class) && is_subclass_of($class, Model::class))
+            ->filter(function (?string $class) {
+                if (! $class || ! class_exists($class)) {
+                    return false;
+                }
+
+                if (! is_subclass_of($class, Model::class)) {
+                    return false;
+                }
+
+                $reflection = new ReflectionClass($class);
+
+                return ! $reflection->isAbstract();
+            })
             ->values()
             ->toArray();
 
