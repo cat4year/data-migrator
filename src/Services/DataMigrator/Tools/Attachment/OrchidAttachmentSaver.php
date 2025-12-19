@@ -19,6 +19,10 @@ final readonly class OrchidAttachmentSaver implements AttachmentSaver
 
     public function collectForMigration(array $exportData, string $directory, string $name)
     {
+        if (!isset($exportData['attachments'])) {
+            return;
+        }
+
         $this->filesystem->ensureDirectoryExists($directory);
 
         $this->copyFilesAndTransformMigrationData($exportData['attachments']['items'], $directory, $name);
@@ -26,6 +30,10 @@ final readonly class OrchidAttachmentSaver implements AttachmentSaver
 
     public function upAttachments(array $data, string $attachmentsPath)
     {
+        if (!isset($data['attachments'])) {
+            return;
+        }
+
         $this->copyFilesToDiskPathFromMigrationData($data['attachments']['items'], $attachmentsPath);
     }
 
