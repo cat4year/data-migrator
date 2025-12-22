@@ -12,7 +12,6 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use JsonException;
 use RuntimeException;
@@ -104,7 +103,7 @@ final readonly class Exporter
     {
         $table = $this->entity->getTable();
         $syncId = $this->syncIdState->tableSyncId($table);
-        $mainEntityResult = $this->makeItems($table, $ids, $syncId, $this->entity->getKeyName());
+        $mainEntityResult = $this->makeItems($table, $ids, $syncId);
 
         if ($mainEntityResult === []) {
             return [];
@@ -124,16 +123,8 @@ final readonly class Exporter
 
         /** @var string $entityTable */
         foreach ($exporterState->entityIds as $entityTable => $entityIds) {
-            // есть проблема дублирования получения записей основной модели. Критично ли?
-            $keyName = $this->tableService->identifyPrimaryKeyNameByTable($entityTable);
-
-            if ($keyName === null) {
-                Log::error('No primary key found for table ' . $entityTable);
-                continue;
-            }
-
             $entitySyncId = $this->syncIdState->tableSyncId($entityTable);
-            $entityItems = $this->makeItems($entityTable, $entityIds, $entitySyncId, $keyName);
+            $entityItems = $this->makeItems($entityTable, $entityIds, $entitySyncId);
 
             if ($entityItems === []) {
                 continue;
@@ -168,16 +159,27 @@ final readonly class Exporter
         string $table,
         array $ids,
         SyncId $syncId,
-        string $idKey = 'id',
         bool $emptyIsAll = false
     ): array {
         if ($ids === [] && ! $emptyIsAll) {
             return [];
         }
 
-        $items = DB::table($table)
-            ->unless($ids === [], static fn ($q) => $q->whereIn($idKey, $ids))
-            ->get()
+        $query = DB::table($table);
+        foreach ($ids as $idString) {
+            $idsForColumns = explode('|', $idString);
+
+            $syncColumns = $syncId->columns();
+            $query->orWhere(function ($q) use ($syncColumns, $idsForColumns) {
+                foreach ($syncColumns as $index => $field) {
+                    if (isset($idsForColumns[$index])) {
+                        $q->where($field, $idsForColumns[$index]);
+                    }
+                }
+            });
+        }
+
+        $items = $query->get()
             ->keyBy(static fn (stdClass $item): string => $syncId->keyStringByValues((array) $item));
 
         return $this->dataToArray($items);

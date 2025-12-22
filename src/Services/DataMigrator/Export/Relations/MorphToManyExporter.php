@@ -12,8 +12,8 @@ use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 final readonly class MorphToManyExporter implements RelationExporter
 {
@@ -34,17 +34,27 @@ final readonly class MorphToManyExporter implements RelationExporter
 
     public function makeExportData(array $foreignIds): array
     {
-        $pivotIdKeyName = $this->getPivotIdColumnKeyName();
-        $pivotIds = $this->getPivotUsedIds($foreignIds, $pivotIdKeyName);
         $relatedIdKeyName = $this->morphToMany->getRelated()->getKeyName();
 
         $relatedTable = $this->morphToMany->getRelated()->getTable();
         $pivotTable = $this->morphToMany->getTable();
-        $relatedPivotKeyName = $this->morphToMany->getRelatedPivotKeyName();
+
+        $pivotColumns = $this->getPivotColumns($foreignIds);
+        $syncId = $this->syncIdState->tableSyncId($this->morphToMany->getTable());
+        $syncColumns = $syncId->columns();
+        $pivotIds = $pivotColumns
+            ->map(static function ($item) use ($syncColumns) {
+                $values = array_map(static function ($column) use ($item) {
+                    return data_get($item, $column);
+                }, $syncColumns);
+
+                return implode('|', array_filter($values));
+            })
+            ->all();
 
         $relatedIds = [];
         if ($pivotIds !== []) {
-            $relatedIds = $this->getRelatedUsedIdsByPivot($pivotIds, $pivotIdKeyName, $relatedPivotKeyName);
+            $relatedIds = $pivotColumns->pluck($this->morphToMany->getRelatedPivotKeyName());
         }
 
         return [
@@ -55,45 +65,19 @@ final readonly class MorphToManyExporter implements RelationExporter
             ],
             $pivotTable => [
                 'table' => $pivotTable,
-                'keyName' => $pivotIdKeyName,
+                'keyName' => $syncId,
                 'ids' => $pivotIds,
             ],
         ];
     }
 
-    private function getRelatedUsedIdsByPivot(array $ids, string $pivotIdKeyName, string $relatedForeignKeyName): array
-    {
-        return DB::table($this->morphToMany->getTable())
-            ->select($relatedForeignKeyName)
-            ->whereIn($pivotIdKeyName, $ids)
-            ->where($this->morphToMany->getMorphType(), $this->morphToMany->getParent()->getMorphClass())
-            ->get()
-            ->pluck($relatedForeignKeyName)
-            ->toArray();
-    }
-
-    private function getPivotIdColumnKeyName(bool $checkFalseAutoIncrement = false): string
-    {
-        $columns = Schema::getColumns($this->morphToMany->getTable());
-        foreach ($columns as $column) {
-            if ($column['nullable'] === false && (! $checkFalseAutoIncrement || $column['auto_increment'] === false)) {
-                return $column['name'];
-            }
-        }
-
-        return current($columns)['name'];
-    }
-
-    private function getPivotUsedIds(array $ids, string $pivotIdKeyName): array
+    private function getPivotColumns(array $ids): Collection
     {
         $parentPivotKeyName = $this->morphToMany->getForeignPivotKeyName();
-
         return DB::table($this->morphToMany->getTable())
             ->whereIn($parentPivotKeyName, $ids)
             ->where($this->morphToMany->getMorphType(), $this->morphToMany->getParent()->getMorphClass())
-            ->get()
-            ->pluck($pivotIdKeyName)
-            ->toArray();
+            ->get();
     }
 
     private function getEntity(): Model
@@ -106,6 +90,7 @@ final readonly class MorphToManyExporter implements RelationExporter
         return $this->getEntity()->getKeyName();
     }
 
+    //todo: проверить syncId с автоинкрементами
     public function getModifyInfo(): array
     {
         $model = $this->morphToMany->getParent();
