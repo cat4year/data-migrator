@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export\Relations;
 
-use Cat4year\DataMigrator\Services\DataMigrator\Tools\ModelService;
+use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
+use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -15,8 +17,8 @@ final readonly class BelongsToManyExporter implements RelationExporter
 {
     public function __construct(
         private BelongsToMany $belongsToMany,
-        private ModelService $modelService,
         private TableService $tableService,
+        private SyncIdState $syncIdState,
     ) {
     }
 
@@ -25,7 +27,7 @@ final readonly class BelongsToManyExporter implements RelationExporter
      */
     public static function create(BelongsToMany $belongsToMany): self
     {
-        return app()->makeWith(self::class, ['relation' => $belongsToMany]);
+        return app()->makeWith(self::class, ['belongsToMany' => $belongsToMany]);
     }
 
     public function makeExportData(array $foreignIds): array
@@ -89,69 +91,84 @@ final readonly class BelongsToManyExporter implements RelationExporter
     public function getModifyInfo(): array
     {
         $model = $this->belongsToMany->getParent();
-        $uniqueKeyName = $this->modelService->identifyUniqueIdColumn($model);
         $parentTable = $model->getTable();
         $parentKeyName = $model->getKeyName();
-
-        if ($uniqueKeyName === null) {
-            // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
-        }
+        $syncId = $this->syncIdState->tableSyncId($model->getTable());
 
         $related = $this->belongsToMany->getRelated();
         $relatedTable = $related->getTable();
         $relatedKeyName = $related->getKeyName();
-        $uniqueRelatedKeyName = $this->modelService->identifyUniqueIdColumn($related);
-
-        if ($uniqueRelatedKeyName === null) {
-            // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
-        }
+        $uniqueRelatedKeyName = $this->syncIdState->tableSyncId($related->getTable());
 
         $pivotTable = $this->belongsToMany->getTable();
         $parentPivotKeyName = $this->belongsToMany->getForeignPivotKeyName();
         $relatedPivotKeyName = $this->belongsToMany->getRelatedPivotKeyName();
 
-        $parentModifyInfo = [
-            'table' => $parentTable,
-            'oldKeyName' => $parentKeyName,
-            'keyName' => $uniqueKeyName,
-            'autoIncrement' => $this->tableService->isAutoincrementColumn($parentTable, $parentKeyName),
-            'nullable' => $this->tableService->isNullableColumn($parentTable, $parentKeyName),
-        ];
+        $parentTableColumn = new ExportModifySimpleColumn(
+            tableName: $parentTable,
+            keyName: $parentKeyName,
+            uniqueKeyName: $syncId,
+            nullable: $this->tableService->isNullableColumn($parentTable, $parentKeyName),
+            autoincrement: $this->tableService->isAutoincrementColumn($parentTable, $parentKeyName),
+        );
 
-        $relatedModifyInfo = [
-            'table' => $relatedTable,
-            'oldKeyName' => $relatedKeyName,
-            'keyName' => $uniqueRelatedKeyName,
-            'autoIncrement' => $this->tableService->isAutoincrementColumn($relatedTable, $relatedKeyName),
-            'nullable' => $this->tableService->isNullableColumn($relatedTable, $relatedKeyName),
-        ];
+        $relatedTableColumn = new ExportModifySimpleColumn(
+            tableName: $relatedTable,
+            keyName: $relatedKeyName,
+            uniqueKeyName: $uniqueRelatedKeyName,
+            nullable: $this->tableService->isNullableColumn($relatedTable, $relatedKeyName),
+            autoincrement: $this->tableService->isAutoincrementColumn($relatedTable, $relatedKeyName),
+        );
+
+        $foreignParentTableColumn = new ExportModifyForeignColumn(
+            tableName: $pivotTable,
+            keyName: $parentPivotKeyName,
+            foreignTableName: $parentTable,
+            foreignUniqueKeyName: $syncId,
+            foreignOldKeyName: $parentKeyName,
+            nullable: $this->tableService->isNullableColumn($pivotTable, $parentPivotKeyName),
+        );
+
+        $foreignRelatedTableColumn = new ExportModifyForeignColumn(
+            tableName: $pivotTable,
+            keyName: $relatedPivotKeyName,
+            foreignTableName: $relatedTable,
+            foreignUniqueKeyName: $uniqueRelatedKeyName,
+            foreignOldKeyName: $relatedKeyName,
+            nullable: $this->tableService->isNullableColumn($pivotTable, $relatedPivotKeyName),
+        );
 
         $result = [
             $parentTable => [
-                $parentKeyName => $parentModifyInfo + ['isPrimaryKey' => true],
+                $parentTableColumn->getKeyName() => $parentTableColumn,
             ],
             $relatedTable => [
-                $relatedKeyName => $relatedModifyInfo + ['isPrimaryKey' => true],
+                $relatedTableColumn->getKeyName() => $relatedTableColumn,
             ],
             $pivotTable => [
-                $parentPivotKeyName => $parentModifyInfo,
-                $relatedPivotKeyName => $relatedModifyInfo,
+                $foreignParentTableColumn->getKeyName() => $foreignParentTableColumn,
+                $foreignRelatedTableColumn->getKeyName() => $foreignRelatedTableColumn,
             ],
         ];
 
         $pivotIdKeyName = $this->getPivotIdColumnKeyName(true);
         if ($pivotIdKeyName !== $parentPivotKeyName && $pivotIdKeyName !== $relatedPivotKeyName) {
-            $result[$pivotTable][$pivotIdKeyName] = [
-                'table' => $pivotTable,
-                'oldKeyName' => $pivotIdKeyName,
-                'keyName' => $pivotIdKeyName,
-                'autoIncrement' => $this->tableService->isAutoincrementColumn($pivotTable, $pivotIdKeyName),
-                'nullable' => $this->tableService->isNullableColumn($pivotTable, $pivotIdKeyName),
-            ];
+            $uniquePivotKeyName = $this->syncIdState->tableSyncId($pivotTable);
+
+            $pivotTableColumn = new ExportModifySimpleColumn(
+                tableName: $pivotTable,
+                keyName: $pivotIdKeyName,
+                uniqueKeyName: $uniquePivotKeyName,
+                nullable: $this->tableService->isNullableColumn($pivotTable, $pivotIdKeyName),
+                autoincrement: $this->tableService->isAutoincrementColumn($pivotTable, $pivotIdKeyName),
+            );
+
+            $result[$pivotTable][$pivotIdKeyName] = $pivotTableColumn;
         }
 
-        $pivotIdModifyPrimaryAttributes = ['isPrimaryKey' => true];
-        $result[$pivotTable][$pivotIdKeyName] += $pivotIdModifyPrimaryAttributes;
+        //todo: Рудимент?
+        //$pivotIdModifyPrimaryAttributes = ['isPrimaryKey' => true];
+        //$result[$pivotTable][$pivotIdKeyName] += $pivotIdModifyPrimaryAttributes;
 
         return $result;
     }

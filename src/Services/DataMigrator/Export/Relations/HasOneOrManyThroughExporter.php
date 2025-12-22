@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOneOrManyThrough;
 use ReflectionException;
 use ReflectionProperty;
 
+/** todo: change to syncId and ExportModifyColumn */
 final readonly class HasOneOrManyThroughExporter implements RelationExporter
 {
     public function __construct(
@@ -26,7 +27,7 @@ final readonly class HasOneOrManyThroughExporter implements RelationExporter
      */
     public static function create(HasOneOrManyThrough $hasOneOrManyThrough): self
     {
-        return app()->makeWith(self::class, ['relation' => $hasOneOrManyThrough]);
+        return app()->makeWith(self::class, ['hasOneOrManyThrough' => $hasOneOrManyThrough]);
     }
 
     public function makeExportData(array $foreignIds): array

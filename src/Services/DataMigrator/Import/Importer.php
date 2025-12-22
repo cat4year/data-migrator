@@ -29,11 +29,12 @@ final readonly class Importer
     ) {
     }
 
-    public function import(ImportData $importData, string $migrationName): void
+    public function import(ImportData $importData, string $migrationName = ''): void
     {
         $data = $importData->get();
-
-        $this->handleAttachments($data, $migrationName);
+        if (!empty($migrationName)) {
+            $this->handleAttachments($data, $migrationName);
+        }
         $this->importData($data);
     }
 

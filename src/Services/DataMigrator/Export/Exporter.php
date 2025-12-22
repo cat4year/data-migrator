@@ -12,6 +12,7 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use JsonException;
 use RuntimeException;
@@ -127,6 +128,7 @@ final readonly class Exporter
             $keyName = $this->tableService->identifyPrimaryKeyNameByTable($entityTable);
 
             if ($keyName === null) {
+                Log::error('No primary key found for table ' . $entityTable);
                 continue;
             }
 

@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export\Relations;
 
-use Cat4year\DataMigrator\Services\DataMigrator\Tools\ModelService;
+use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
 use Illuminate\Contracts\Container\BindingResolutionException;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 
 final readonly class HasOneOrManyExporter implements RelationExporter
 {
     public function __construct(
         private HasOneOrMany $hasOneOrMany,
-        private ModelService $modelService,
         private TableService $tableService,
+        private SyncIdState $syncIdState,
     ) {
     }
 
@@ -31,12 +31,20 @@ final readonly class HasOneOrManyExporter implements RelationExporter
     {
         $ids = $this->getUsedIds($foreignIds);
 
-        $table = $this->hasOneOrMany->getModel()->getTable();
+        $tableName = $this->hasOneOrMany->getParent()->getTable();
+        $keyName = $this->hasOneOrMany->getParent()->getKeyName();
+        $relatedTable = $this->hasOneOrMany->getRelated()->getTable();
+        $relatedKeyName = $this->hasOneOrMany->getRelated()->getKeyName();
 
         return [
-            $table => [
-                'table' => $table,
-                'keyName' => $this->getKeyName(),
+            $tableName => [
+                'table' => $tableName,
+                'keyName' => $keyName,
+                'ids' => $foreignIds,
+            ],
+            $relatedTable => [
+                'table' => $relatedTable,
+                'keyName' => $relatedKeyName,
                 'ids' => $ids,
             ],
         ];
@@ -56,66 +64,41 @@ final readonly class HasOneOrManyExporter implements RelationExporter
             ->toArray();
     }
 
-    private function getEntity(): Model
-    {
-        return $this->hasOneOrMany->getRelated();
-    }
-
-    private function getKeyName(): string
-    {
-        return $this->getEntity()->getKeyName();
-    }
-
     public function getModifyInfo(): array
     {
         $model = $this->hasOneOrMany->getParent();
         $parentTable = $model->getTable();
         $parentKeyName = $model->getKeyName();
-        $uniqueKeyName = $this->modelService->identifyUniqueIdColumn($model);
-
-        if ($uniqueKeyName === null) {
-            // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
-        }
+        $syncId = $this->syncIdState->tableSyncId($model->getTable());
 
         $related = $this->hasOneOrMany->getRelated();
         $relatedTable = $related->getTable();
-        $uniqueRelatedKeyName = $this->modelService->identifyUniqueIdColumn($related);
+        $relatedKeyName = $related->getKeyName();
+        $uniqueRelatedKeyName = $this->syncIdState->tableSyncId($related->getTable());
 
-        if ($uniqueRelatedKeyName === null) {
-            // todo: можно решить через конфигуратор что с этим делать: скип, дефолтный keyName, ...?
-        }
+        $parentTableColumn =  new ExportModifySimpleColumn(
+            tableName: $parentTable,
+            keyName: $parentKeyName,
+            uniqueKeyName: $syncId,
+            nullable: $this->tableService->isNullableColumn($parentTable, $parentKeyName),
+            autoincrement: $this->tableService->isAutoincrementColumn($parentTable, $parentKeyName),
+        );
 
-        $localKeyName = $this->hasOneOrMany->getLocalKeyName();
-        $foreignKeyName = $this->hasOneOrMany->getForeignKeyName();
+        $relatedTableColumn = new ExportModifySimpleColumn(
+            tableName: $relatedTable,
+            keyName: $relatedKeyName,
+            uniqueKeyName: $uniqueRelatedKeyName,
+            nullable: $this->tableService->isNullableColumn($relatedTable, $relatedKeyName),
+            autoincrement: $this->tableService->isAutoincrementColumn($relatedTable, $relatedKeyName),
+        );
 
         return [
             $parentTable => [
-                $parentKeyName => [
-                    'table' => $parentTable,
-                    'oldKeyName' => $parentKeyName,
-                    'keyName' => $uniqueKeyName,
-                    'isPrimaryKey' => true,
-                    'autoIncrement' => $this->tableService->isAutoincrementColumn(
-                        $parentTable,
-                        $parentKeyName
-                    ),
-                    'nullable' => $this->tableService->isNullableColumn(
-                        $parentTable,
-                        $parentKeyName
-                    ),
-                ],
+                $parentTableColumn->getKeyName() => $parentTableColumn,
             ],
             $relatedTable => [
-                $foreignKeyName => [
-                    'table' => $parentTable,
-                    'oldKeyName' => $localKeyName,
-                    'keyName' => $uniqueRelatedKeyName,
-                    'nullable' => $this->tableService->isNullableColumn(
-                        $relatedTable,
-                        $foreignKeyName
-                    ),
-                ],
-            ],
+                $relatedTableColumn->getKeyName() => $relatedTableColumn,
+            ]
         ];
     }
 }
