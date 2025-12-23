@@ -167,7 +167,7 @@ final readonly class Exporter
 
         $query = DB::table($table);
         foreach ($ids as $idString) {
-            $idsForColumns = explode('|', $idString);
+            $idsForColumns = explode('|', (string) $idString);
 
             $syncColumns = $syncId->columns();
             $query->orWhere(function ($q) use ($syncColumns, $idsForColumns) {
