@@ -7,6 +7,7 @@ namespace Cat4year\DataMigrator\Console\Commands;
 use Cat4year\DataMigrator\Services\Configurations\DataMigratorConfiguration;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\ExportConfigurator;
 use Cat4year\DataMigrator\Services\DataMigrator\Migrator;
+use Cat4year\DataMigrator\Services\DataMigrator\Tools\Attachment\BlankAttachmentSaver;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
@@ -28,6 +29,7 @@ final class CreateMigrationCommand extends Command
      {--model= : Main model for migration}
      {--ids= : Model ids for migration (, - separator)}
      {--depth= : Rewrite max depth level for collect relations}
+     {--N|no-attachments : Without attachments}
      ';
 
     /**
@@ -68,6 +70,10 @@ final class CreateMigrationCommand extends Command
         $configurator = $this->makeConfigurator($configurationClass);
         if ($this->option('depth') !== null && is_numeric($this->option('depth'))) {
             $configurator->setMaxRelationDepth((int) $this->option('depth'));
+        }
+
+        if ($this->option('no-attachments')) {
+            $configurator->setAttachmentSaver(resolve(BlankAttachmentSaver::class));
         }
 
         $configurator->setDirectoryPath($path)

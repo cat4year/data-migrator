@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Cat4year\DataMigrator\Services\DataMigrator\Tools\Attachment;
 
 use Illuminate\Filesystem\Filesystem;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Orchid\Attachment\Models\Attachment;

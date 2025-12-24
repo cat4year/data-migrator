@@ -50,7 +50,7 @@ final class ExportConfigurator
 
     private array $excludedRelations = [];
 
-    private readonly AttachmentSaver $attachmentSaver;
+    private AttachmentSaver $attachmentSaver;
 
     public function __construct(
         private readonly MigrationDataSourceFormat $migrationDataSourceFormat,
