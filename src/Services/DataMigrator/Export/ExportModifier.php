@@ -147,7 +147,7 @@ final readonly class ExportModifier
                      * todo: коректно для всех кейсов?
                      * todo: или нужно проверять колонку на уникальность и не автоинкремент колонки? на тип колонки uuid, nanoid, ulid?
                      */
-                    if ($modifyInfoByKey->getSourceKeyName() === $modifyInfoByKey->getSourceUniqueKeyName()->hash()) {
+                    if ($sourceKeyName === $syncId->hash()) {
                         continue;
                     }
 
