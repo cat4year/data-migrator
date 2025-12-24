@@ -5,6 +5,7 @@ declare(strict_types=1);
 return [
     'migrations_path' => env('MIGRATIONS_PATH', database_path('migrations')),
     'model_config_map' => [],
+    'exclude_relations_by_model_map' => [],
     /** Если в таблице нет уникальной не инкрементарной колонки - добавьте ее в сопоставление
      * Ключ - название таблицы, Значение - название колонки
      * Будет использоваться указанная колонка приоритетно, вместо автоматического поиска подходящей колонки

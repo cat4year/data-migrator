@@ -89,9 +89,27 @@ final readonly class RelationsExporter
     {
         $relations = $this->getRelations($entityClass);
         $relationEntities = [];
+
+        $excludeRelations = $this->configurator->getExcludedRelations();
+        $entityModel = resolve($entityClass);
+        assert($entityModel instanceof Model);
+
+        $concreteModelExcludeRelations = [];
+        if (property_exists($entityModel, 'migratorExcludeRelations')) {
+            $concreteModelExcludeRelations = $entityModel->migratorExcludeRelations;
+        } elseif(isset(config('data-migrator.exclude_relations_by_model_map')[$entityClass])) {
+            $concreteModelExcludeRelations = config('data-migrator.exclude_relations_by_model_map')[$entityClass];
+            if (is_string($concreteModelExcludeRelations)) {
+                $concreteModelExcludeRelations = [$concreteModelExcludeRelations];
+            }
+        }
+        $excludeRelations = array_merge($excludeRelations, $concreteModelExcludeRelations);
+
         foreach (array_keys($relations) as $relationName) {
-            $entityModel = app($entityClass);
-            assert($entityModel instanceof Model);
+            if (in_array($relationName, $excludeRelations, true)) {
+                continue;
+            }
+
             $relation = $entityModel->$relationName();
             assert($relation instanceof Relation);
 

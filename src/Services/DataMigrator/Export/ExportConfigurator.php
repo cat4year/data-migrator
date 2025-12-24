@@ -48,6 +48,7 @@ final class ExportConfigurator
 
     private array $ids = [];
 
+    private array $excludedRelations = [];
 
     private readonly AttachmentSaver $attachmentSaver;
 
@@ -182,6 +183,23 @@ final class ExportConfigurator
     public function setDirectoryPath(?string $directoryPath): self
     {
         $this->directoryPath = $directoryPath;
+
+        return $this;
+    }
+
+    public function getExcludedRelations(): array
+    {
+        return $this->excludedRelations;
+    }
+
+    /**
+     * Exclude relation name from all models on current migration progress. But Configuration working for start Model and can't work with optional second Configurator
+     * @param list<string> $excludedRelations name methods for exclude
+     * @return $this
+     */
+    public function setExcludedRelations(array $excludedRelations): self
+    {
+        $this->excludedRelations = $excludedRelations;
 
         return $this;
     }
