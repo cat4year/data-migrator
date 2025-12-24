@@ -35,11 +35,19 @@ final readonly class BelongsToExporter implements RelationExporter
 
         $table = $this->belongsTo->getModel()->getTable();
 
+        $parentTable = $this->belongsTo->getParent()->getTable();
+        $parentKeyName = $this->belongsTo->getParent()->getKeyName();
+
         return [
             $table => [
                 'table' => $table,
                 'keyName' => $this->getKeyName(),
                 'ids' => $ids,
+            ],
+            $parentTable => [
+                'table' => $parentTable,
+                'keyName' => $parentKeyName,
+                'ids' => $foreignIds,
             ],
         ];
     }
