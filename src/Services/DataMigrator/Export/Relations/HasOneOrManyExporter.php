@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator\Export\Relations;
 
+use Cat4year\DataMigrator\Entity\ExportModifyForeignColumn;
 use Cat4year\DataMigrator\Entity\ExportModifySimpleColumn;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\SyncIdState;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\TableService;
@@ -92,12 +93,24 @@ final readonly class HasOneOrManyExporter implements RelationExporter
             autoincrement: $this->tableService->isAutoincrementColumn($relatedTable, $relatedKeyName),
         );
 
+        $foreignKeyName = $this->hasOneOrMany->getForeignKeyName();
+        $uniqueForeignRelatedKeyName = $this->syncIdState->tableSyncId($parentTable);
+        $exportModifyForeignColumn = new ExportModifyForeignColumn(
+            tableName: $relatedTable,
+            keyName: $foreignKeyName,
+            foreignTableName: $parentTable,//is correct?
+            foreignUniqueKeyName: $uniqueForeignRelatedKeyName,//is correct?
+            foreignOldKeyName: $parentKeyName,//is correct?
+            nullable: $this->tableService->isNullableColumn($relatedTable, $foreignKeyName),
+        );
+
         return [
             $parentTable => [
                 $parentTableColumn->getKeyName() => $parentTableColumn,
             ],
             $relatedTable => [
                 $relatedTableColumn->getKeyName() => $relatedTableColumn,
+                $exportModifyForeignColumn->getKeyName() => $exportModifyForeignColumn,
             ]
         ];
     }

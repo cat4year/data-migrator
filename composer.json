@@ -2,7 +2,7 @@
     "name": "cat4year/data-migrator",
     "type": "library",
     "description": "Data migrator package for laravel",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "keywords": [
         "data",
         "content",
