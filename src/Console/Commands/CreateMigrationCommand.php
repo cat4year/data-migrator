@@ -118,7 +118,7 @@ final class CreateMigrationCommand extends Command
             return $modelConfigMap[$modelClass];
         }
 
-        return BaseConfiguration::class;
+        return resolve(DataMigratorConfiguration::class);
     }
 
     /**

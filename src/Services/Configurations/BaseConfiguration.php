@@ -11,9 +11,9 @@ final readonly class BaseConfiguration implements DataMigratorConfiguration
 {
     public function make(array $ids = []): ExportConfigurator
     {
-        return app(ExportConfigurator::class)
+        return resolve(ExportConfigurator::class)
             ->setMaxRelationDepth(PHP_INT_MAX)
-            ->setAttachmentSaver(app(AttachmentSaver::class))
+            ->setAttachmentSaver(resolve(AttachmentSaver::class))
             ->setIds($ids);
     }
 

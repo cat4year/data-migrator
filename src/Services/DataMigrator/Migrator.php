@@ -31,7 +31,7 @@ final readonly class Migrator
         ?string $modelClass = null,
         ?array $ids = null
     ): string {
-        throw_if(! class_exists($configClass) || ! (app($configClass) instanceof DataMigratorConfiguration), new RuntimeException('Migration class not found or not instance of Model'));
+        throw_if(! (resolve($configClass) instanceof DataMigratorConfiguration), new RuntimeException('Migrator configuration class is incorrect'));
 
         $dataMigratorConfiguration = app($configClass);
         assert($dataMigratorConfiguration instanceof DataMigratorConfiguration);

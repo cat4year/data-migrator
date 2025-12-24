@@ -6,6 +6,8 @@ namespace Cat4year\DataMigrator\Providers;
 
 use Cat4year\DataMigrator\Console\Commands\CreateMigrationCommand;
 use Cat4year\DataMigrator\Console\Commands\PintFileCommand;
+use Cat4year\DataMigrator\Services\Configurations\BaseConfiguration;
+use Cat4year\DataMigrator\Services\Configurations\DataMigratorConfiguration;
 use Cat4year\DataMigrator\Services\DataMigrator\MigratorCreator;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\Attachment\AttachmentSaver;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\Attachment\OrchidAttachmentSaver;
@@ -22,6 +24,7 @@ final class DataMigratorServiceProvider extends ServiceProvider
         // MigrationDataSourceFormat::class => XmlMigrationDataSourceFormat::class,
         MigrationDataSourceFormat::class => PhpMigrationDataSourceFormat::class,
         AttachmentSaver::class => OrchidAttachmentSaver::class,
+        DataMigratorConfiguration::class => BaseConfiguration::class,
     ];
 
     #[Override]
