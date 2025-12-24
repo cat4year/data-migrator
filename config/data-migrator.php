@@ -5,20 +5,15 @@ declare(strict_types=1);
 return [
     'migrations_path' => env('MIGRATIONS_PATH', database_path('migrations')),
     'model_config_map' => [],
-    'exclude_relations_by_model_map' => [],
-    /** Если в таблице нет уникальной не инкрементарной колонки - добавьте ее в сопоставление
-     * Ключ - название таблицы, Значение - название колонки
-     * Будет использоваться указанная колонка приоритетно, вместо автоматического поиска подходящей колонки
+    /**
+     * Запретить для модели какие-то связи по имени метода.
+     * Model1::class => ['relationNameForExclude1', 'relationNameForExclude2'],
+     * Model2::class => ['relationNameForExclude1', 'relationNameForExclude2'],
+     * или строкой, а не массивом, если нужно исключить всего одну связь для модели
+     * Model1::class => 'relationNameForExclude',
+     * Model2::class => 'relationNameForExclude',
      */
-    'table_unique_column_map' => [
-        // 'users' => ['name', 'email']
-        'slug_secondables' => [
-            'slug_secondable_type',
-            'slug_second_id',
-            'slug_secondable_id',
-        ],
-        'slug_firsts' => 'slug',
-    ],
+    'exclude_relations_by_model_map' => [],
     /**
      * Вместо использования этой настройки, лучше добавить unique к вашим таблицам
      * Будет использоваться для приоритетной синхронизации по указанному syncId
@@ -47,5 +42,4 @@ return [
      * false - Выбрасываем исключение, т.к. не можем мигрировать поля с инкрементарным id
      */
     'try_find_unique_relation_column' => env('MIGRATION_TRY_FIND_UNIQUE_RELATION_COLUMN', true),
-    'try_use_index_for_sync_on_import' => true,
 ];
