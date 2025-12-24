@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Console\Commands;
 
-use Cat4year\DataMigrator\Services\Configurations\BaseConfiguration;
 use Cat4year\DataMigrator\Services\Configurations\DataMigratorConfiguration;
+use Cat4year\DataMigrator\Services\DataMigrator\Export\ExportConfigurator;
 use Cat4year\DataMigrator\Services\DataMigrator\Migrator;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
 use ReflectionClass;
+use RuntimeException;
 use SplFileInfo;
 
 final class CreateMigrationCommand extends Command
@@ -26,6 +27,7 @@ final class CreateMigrationCommand extends Command
      {--config= : Migration class with some configuration}
      {--model= : Main model for migration}
      {--ids= : Model ids for migration (, - separator)}
+     {--depth= : Rewrite max depth level for collect relations}
      ';
 
     /**
@@ -59,13 +61,22 @@ final class CreateMigrationCommand extends Command
 
         $ids = $input->getOption('ids') ?? $this->ask('Ids') ?? '';
         $configurationClass = $input->getOption('config');
+        if ($configurationClass === null) {
+            $configurationClass = $this->defineConfiguration($modelClass);
+        }
+
+        $configurator = $this->makeConfigurator($configurationClass);
+        if ($this->option('depth') !== null && is_numeric($this->option('depth'))) {
+            $configurator->setMaxRelationDepth((int) $this->option('depth'));
+        }
+
+        $configurator->setDirectoryPath($path)
+            ->setIds(!empty($ids) ? explode(',', mb_trim($ids)) : [])
+            ->setFileName($name);
 
         $migrationPath = app(Migrator::class)->createByConfiguration(
-            $this->defineConfiguration($modelClass, $configurationClass),
-            $name,
-            $path,
+            $configurator,
             $modelClass,
-            !empty($ids) ? explode(',', mb_trim($ids)) : []
         );
 
         $this->info(sprintf('Created data-migration "%s"', $migrationPath));
@@ -92,12 +103,8 @@ final class CreateMigrationCommand extends Command
      * @param class-string<Model> $modelClass
      * @return class-string<DataMigratorConfiguration>
      */
-    private function defineConfiguration(string $modelClass, ?string $configurationClass = null): string
+    private function defineConfiguration(string $modelClass): string
     {
-        if ($configurationClass !== null) {
-            return $configurationClass;
-        }
-
         $model = app($modelClass);
         assert($model instanceof Model);
         if (
@@ -118,7 +125,7 @@ final class CreateMigrationCommand extends Command
             return $modelConfigMap[$modelClass];
         }
 
-        return resolve(DataMigratorConfiguration::class);
+        return DataMigratorConfiguration::class;
     }
 
     /**
@@ -189,5 +196,14 @@ final class CreateMigrationCommand extends Command
     private function getBasePath(): string
     {
         return config('data-migrator.migrations_path') ?? database_path('migrations');
+    }
+
+    private function makeConfigurator(string $configClass): ExportConfigurator
+    {
+        throw_if(! (resolve($configClass) instanceof DataMigratorConfiguration), new RuntimeException('Migrator configuration class is incorrect'));
+
+        $dataMigratorConfiguration = app($configClass);
+        assert($dataMigratorConfiguration instanceof DataMigratorConfiguration);
+        return $dataMigratorConfiguration->make();
     }
 }

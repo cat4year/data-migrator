@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Cat4year\DataMigrator\Services\DataMigrator;
 
-use Cat4year\DataMigrator\Services\Configurations\DataMigratorConfiguration;
+use Cat4year\DataMigrator\Services\DataMigrator\Export\ExportConfigurator;
 use Cat4year\DataMigrator\Services\DataMigrator\Export\Exporter;
 use Cat4year\DataMigrator\Services\DataMigrator\Tools\Attachment\AttachmentSaver;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
-use RuntimeException;
 
 final readonly class Migrator
 {
@@ -25,23 +24,10 @@ final readonly class Migrator
      * @throws BindingResolutionException
      */
     public function createByConfiguration(
-        string $configClass,
-        string $name,
-        string $path,
+        ExportConfigurator $exportConfigurator,
         ?string $modelClass = null,
-        ?array $ids = null
     ): string {
-        throw_if(! (resolve($configClass) instanceof DataMigratorConfiguration), new RuntimeException('Migrator configuration class is incorrect'));
-
-        $dataMigratorConfiguration = app($configClass);
-        assert($dataMigratorConfiguration instanceof DataMigratorConfiguration);
-        $exportConfigurator = $dataMigratorConfiguration->make();
-
-        $exportConfigurator->setDirectoryPath($path)
-            ->setIds($ids ?? [])
-            ->setFileName($name);
-
-        $exporter = Exporter::create(app($modelClass), $exportConfigurator);
+        $exporter = Exporter::create(resolve($modelClass), $exportConfigurator);
         $exportData = $exporter->exportData();
 
         $fullPath = $exportConfigurator->makeSourceFullPath();
