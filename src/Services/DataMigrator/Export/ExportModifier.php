@@ -144,6 +144,14 @@ final readonly class ExportModifier
                     assert($syncId instanceof SyncId);
 
                     /**
+                     * todo: коректно для всех кейсов?
+                     * todo: или нужно проверять колонку на уникальность и не автоинкремент колонки? на тип колонки uuid, nanoid, ulid?
+                     */
+                    if ($modifyInfoByKey->getSourceKeyName() === $modifyInfoByKey->getSourceUniqueKeyName()->hash()) {
+                        continue;
+                    }
+
+                    /**
                      * todo: надо решить как тут действовать.
                      * todo: Либо отменять экспорт, либо пропускать с неизменным автоинкрементным полем
                      */
